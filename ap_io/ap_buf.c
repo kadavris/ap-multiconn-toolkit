@@ -4,7 +4,7 @@
   (c) Copyright by Andrej Pakhutin
   Portions Copyright by Max Vakulenko
 */
-#define _BUF_SRC
+#define AP_BUF_C
 #include <io.h>
 #include <mem.h>
 #include <dos.h>
@@ -12,116 +12,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-/****************** buf.h ******************/
-#ifndef _BUF_H
-#define _BUF_H
-typedef struct
-{
-  unsigned long hits;
-  unsigned long misses;
-  unsigned long hits_size;
-  unsigned long misses_size;
-  unsigned long partial_hits;
-  unsigned long partial_hits_size;
-  unsigned long partial_misses_size;
-  unsigned long reads;
-  unsigned long writes;
-  unsigned long reads_size;
-  unsigned long writes_size;
-} _AP_buf_stat;
-
-typedef struct
-{
-  int f;        /* file handle associated with buffer */
-  unsigned char *ptr; /* ptr to the buffer location */
-  unsigned pos;    /* current position in buffer */
-  unsigned size;    /* buffer size */
-  unsigned fill;    /* bytes currently in buffer */
-  char mode;      /* read, write or r/w buffer */
-  char written;    /* was this buffer pool written to? */
-  _AP_buf_stat stat;  /* usage statistics */
-} _AP_buf;
-
-#define BUF_RDONLY  0
-#define BUF_WRONLY  1
-#define BUF_RDWR    2
-
-#ifndef _BUF_SRC
-/*
-  parms: buffer_record, size, memptr
-  Initializes buffer structure.
-*/
-extern void initbuf(_AP_buf*, unsigned, unsigned char*);
-
-/*
-  parms: buffer_record, file handle, I/O mode
-  Attaches buffer to the open file
-*/
-extern void attachbuf(_AP_buf*, int, char);
-
-/*
-parms: buffer_record
-Detaches buffer from the file
-*/
-extern void detachbuf(_AP_buf*, int);
-
-/*
-parms: buffer_record, destination, size
-Copies "size" bytes from file to "destination"
-*/
-extern unsigned getbuf(_AP_buf*, void*, unsigned);
-
-/*
-parms: buffer_record, source, size
-Copies "size" bytes from "destination" to file
-*/
-extern unsigned putbuf(_AP_buf*, void*, unsigned);
-
-/*
-parms: buffer_record, destination_string, maxsize
-Gets text string (ended with CR/LF) with maximal length "maxsize"
-from file to "destination"
-*/
-extern unsigned getbufstr(_AP_buf*, unsigned char*, unsigned);
-
-/*
-parms: buffer_record, source_string
-Writes string from "source" to file (no CR/LF added automatically!)
-*/
-extern unsigned putbufstr(_AP_buf*, unsigned char*);
-
-/* Gets/puts single character from/to file */
-extern int getbufchar(_AP_buf*);
-extern int putbufchar(_AP_buf*, unsigned char);
-
-/* clears buffer to make it emty */
-extern void clearbuf(_AP_buf*);
-
-/* flushes buffer contens if any and if modified */
-extern unsigned flushbuf(_AP_buf*);
-
-/*
-parms: buffer_record, size_to_skip
-Skips "size" bytes in file (write-only buffer unsupported)
-*/
-extern long skipbuf(_AP_buf*,long);
-
-/* Copies data directly from one buffer to another */
-extern long copybuf(_AP_buf*,_AP_buf*,long,int*);
-
-/* fills buf with char */
-extern int fillbuf(_AP_buf*, unsigned char, long);
-
-/* As lseek/tell, but with buffer */
-extern long seekbuf(_AP_buf*, long);
-extern long tellbuf(_AP_buf*);
-#endif
-#endif
-
-/************ buf.c ************/
-
 /*************************************************************/
-void initbuf(_AP_buf *b, unsigned size, unsigned char *ptr)
+void initbuf(ap_buf *b, unsigned size, unsigned char *ptr)
 {
   b->ptr = ptr;
   b->size=size;
@@ -131,18 +23,18 @@ void initbuf(_AP_buf *b, unsigned size, unsigned char *ptr)
 }
 
 /*************************************************************/
-void clearbuf(_AP_buf *b)
+void clearbuf(ap_buf *b)
 {
   b->fill = b->pos = 0u;
   b->written=0;
 }
 
 /************************************************************/
-unsigned flushbuf(_AP_buf *b)
+unsigned flushbuf(ap_buf *b)
 {
 unsigned n;
 
-  if (b->mode == BUF_RDONLY)
+  if (b->mode == AP_BUF_RDONLY)
   {
     fprintf(stderr, "flushbuf(): Attempt to flush read-type buffer!\r\n");
     return 0;
@@ -163,13 +55,13 @@ unsigned n;
 }
 
 /*************************************************************/
-void attachbuf(_AP_buf *b, int f, char mode)
+void attachbuf(ap_buf *b, int f, char mode)
 {
   if (b->f != -1 && b->ptr != NULL && b->size != 0)
   {
     fprintf(stderr, "attachbuf(): warning: using uninitialized or already attached buffer!\n");
 
-    if(b->mode == BUF_WRONLY){
+    if(b->mode == AP_BUF_WRONLY){
       fprintf(stderr, "attachbuf(): attempting to flush buffer...\r\n");
       flushbuf(b);
     }
@@ -193,19 +85,19 @@ void attachbuf(_AP_buf *b, int f, char mode)
 }
 
 /*************************************************************/
-void detachbuf(_AP_buf *b, int cf)
+void detachbuf(ap_buf *b, int cf)
 {
-  if (b->mode != BUF_RDONLY) flushbuf(b);
+  if (b->mode != AP_BUF_RDONLY) flushbuf(b);
   if (cf) close(b->f);
   b->f = -1;
 }
 
 /*************************************************************/
-unsigned getbuf(_AP_buf *b, void *to, unsigned need)
+unsigned getbuf(ap_buf *b, void *to, unsigned need)
 {
 unsigned copied, left;
 
-  if (b->mode == BUF_WRONLY)
+  if (b->mode == AP_BUF_WRONLY)
   {
     fprintf(stderr, "getbuf(): Attempt to read from write-type buffer!\n");
     return 0;
@@ -242,11 +134,11 @@ unsigned copied, left;
 }
 
 /*************************************************************/
-unsigned putbuf(_AP_buf *b, void *from, unsigned need)
+unsigned putbuf(ap_buf *b, void *from, unsigned need)
 {
 unsigned copied,left;
 
-  if (b->mode == BUF_RDONLY){
+  if (b->mode == AP_BUF_RDONLY){
     fprintf(stderr, "putbuf(): Attempt to write to read-type buffer!\n");
     return 0;
   }
@@ -279,10 +171,10 @@ unsigned copied,left;
 }
 
 /*************************************************************/
-int getbufchar(_AP_buf *b)
+int getbufchar(ap_buf *b)
 {
 
-  if (b->mode == BUF_WRONLY)
+  if (b->mode == AP_BUF_WRONLY)
   {
     fprintf(stderr, "getbufchar(): Attempt to read from write-type buffer!\n");
     return 0;
@@ -318,10 +210,10 @@ int getbufchar(_AP_buf *b)
 }
 
 /*************************************************************/
-int putbufchar(_AP_buf *b, unsigned char c)
+int putbufchar(ap_buf *b, unsigned char c)
 {
 
-  if (b->mode == BUF_RDONLY){
+  if (b->mode == AP_BUF_RDONLY){
     fprintf(stderr, "putbufchar(): Attempt to write to read-type buffer!\n");
     return 0;
   }
@@ -348,14 +240,14 @@ int putbufchar(_AP_buf *b, unsigned char c)
 }
 
 /*************************************************************/
-unsigned getbufstr(_AP_buf *b, unsigned char *s, unsigned size)
+unsigned getbufstr(ap_buf *b, unsigned char *s, unsigned size)
 {
 unsigned copied;
 
 fprintf(stderr, "getbufstr(): function not implemented!\n");
 exit(1);
 
-  if (b->mode == BUF_WRONLY){ fprintf(stderr, "getbufstr(): Attempt to read from write-type buffer!\n"); return 0; }
+  if (b->mode == AP_BUF_WRONLY){ fprintf(stderr, "getbufstr(): Attempt to read from write-type buffer!\n"); return 0; }
 
   for (copied = 0u, *s = ' ';; ++copied, ++s)
   {
@@ -390,14 +282,14 @@ exit(1);
 }
 
 /*************************************************************/
-unsigned putbufstr(_AP_buf *b, unsigned char *s)
+unsigned putbufstr(ap_buf *b, unsigned char *s)
 {
 unsigned copied;
 
 fprintf(stderr, "putbufstr(): function not implemented!\n");
 exit(1);
 
-  if (b->mode == BUF_RDONLY){ fprintf(stderr, "putbufstr(): Attempt to write to read-type buffer!\n"); return 0; }
+  if (b->mode == AP_BUF_RDONLY){ fprintf(stderr, "putbufstr(): Attempt to write to read-type buffer!\n"); return 0; }
 
   if (*s == '\0') return 0u;
 
@@ -408,11 +300,11 @@ exit(1);
 }
 
 /*************************************************************/
-long skipbuf(_AP_buf *b, long need)
+long skipbuf(ap_buf *b, long need)
 {
 long left, ls, p, shift;
 
-  if(b->mode == BUF_WRONLY)
+  if(b->mode == AP_BUF_WRONLY)
   {
     fprintf(stderr, "skipbuf(): Attempt to skip for write-type buffer!\n");
     return 0l;
@@ -442,13 +334,13 @@ long left, ls, p, shift;
 }
 
 /*************************************************************/
-long copybuf(_AP_buf *in, _AP_buf *out, long need, int *status)
+long copybuf(ap_buf *in, ap_buf *out, long need, int *status)
 {
 unsigned l,t;
 long copied;
 
-  if(in->mode==BUF_WRONLY){ fprintf(stderr, "copybuf(): Attempt to read from writeonly buffer!\n"); return 0; }
-  if(out->mode==BUF_RDONLY){ fprintf(stderr, "copybuf(): Attempt to write to readonly buffer!\n"); return 0; }
+  if(in->mode==AP_BUF_WRONLY){ fprintf(stderr, "copybuf(): Attempt to read from writeonly buffer!\n"); return 0; }
+  if(out->mode==AP_BUF_RDONLY){ fprintf(stderr, "copybuf(): Attempt to write to readonly buffer!\n"); return 0; }
 
   copied=0l;
   *status=1;
@@ -485,12 +377,12 @@ long copied;
 /*************************************************************/
 /* !!!REWRITE!!! */
 
-long seekbuf(_AP_buf *b, long l)
+long seekbuf(ap_buf *b, long l)
 {
 long n;
 
   if (b->written) flushbuf(b);
-  if (b->mode == BUF_WRONLY) return lseek(b->f, l, SEEK_SET);
+  if (b->mode == AP_BUF_WRONLY) return lseek(b->f, l, SEEK_SET);
 
   if ( l < (n = tell(b->f)) - (long)b->fill || l >= n) /* out of buffer */
   {
@@ -498,7 +390,9 @@ long n;
     b->fill = read(b->f, b->ptr, b->size);
     b->pos = 0u;
   }
-  else b->pos = (unsigned)(l - (n - (long)b->fill));
+  else
+    b->pos = (unsigned)(l - (n - (long)b->fill));
+
   return l;
 /*
   b->stat.hits=0ul;
@@ -516,27 +410,38 @@ long n;
 }
 
 /*************************************************************/
-long tellbuf(_AP_buf *b)
+long tellbuf(ap_buf *b)
 {
   return tell(b->f) - b->fill + b->pos;
 }
 
 /*************************************************************/
-int fillbuf(_AP_buf *b, unsigned char c, long need)
+int fillbuf(ap_buf *b, unsigned char c, long need)
 {
-long l;
+  long l;
 
-  if(b->mode==BUF_RDONLY){ fprintf(stderr, "fillbuf(): readonly buffer!\n"); return 0; }
+
+  if ( b->mode == AP_BUF_RDONLY)
+  {
+    fprintf(stderr, "fillbuf(): readonly buffer!\n");
+    return 0;
+  }
 
   while (need)
-    {
-    if (b->pos==b->fill) flushbuf(b);
-    if ((l = b->fill - b->pos) > need) l=need;
+  {
+    if (b->pos == b->fill)
+      flushbuf(b);
+
+    if ((l = b->fill - b->pos) > need)
+      l = need;
+
     memset(b->ptr + b->pos, c, (unsigned)l);
-    need -= l; b->pos += l;
+    need -= l;
+    b->pos += l;
     b->written = 1;
     b->stat.writes++;
     b->stat.writes_size += l;
   }
+
   return 1;
 }

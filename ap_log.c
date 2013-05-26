@@ -1,18 +1,13 @@
-/*
-  apstr.c: string manipulation and alike functions. written by Andrej Pakhutin for his own use primarily.
-*/
-#include <string.h>
+#define AP_LOG_C
+
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <syslog.h>
-#include <ctype.h>
+#include <time.h>
 #include <unistd.h>
-#include <stdarg.h>
-#include <sys/socket.h>
 
-#define _AP_STR_C
-#include "apstr.h"
-#include "aptcp.h"
+#include "ap_log.h"
+#include "ap_net/ap_tcp.h"
 
 int debug_to_tty = 0;
 int debug_level = 0;
@@ -26,6 +21,7 @@ static int debug_mutex = 0;
 static int getlock(void)
 {
   int i;
+
 
   for(i = 0; debug_mutex; ++i)
   {
@@ -49,6 +45,7 @@ static int getlock(void)
 int is_debug_handle_internal(int fd)
 {
   int i;
+
 
   for ( i = 0; i < debug_handles_count; ++i )
     if ( debug_handles[i] == fd )
@@ -86,12 +83,13 @@ static int remove_debug_handle_internal(int fd)
 {
   int i, ii;
 
+
   for ( i = 0; i < debug_handles_count; ++i )
   {
     if ( debug_handles[i] == fd )
     {
       for ( ii = i+1; ii < debug_handles_count; ++ii )
-        debug_handles[ii-1] = debug_handles[ii];
+        debug_handles[ii - 1] = debug_handles[ii];
 
       --debug_handles_count;
 
@@ -105,6 +103,7 @@ static int remove_debug_handle_internal(int fd)
 int remove_debug_handle(int fd)
 {
   int retcode;
+
 
   if ( !getlock() )
     return 0;
@@ -120,6 +119,7 @@ int is_debug_handle(int fd)
 {
   int retcode;
 
+
   if ( !getlock() )
     return 0;
 
@@ -130,34 +130,73 @@ int is_debug_handle(int fd)
 }
 
 //=================================================================
-void debuglog(char *fmt, ...)
+void debuglog_output(char *buf, int buflen) // internal. outputs ready message to debug channel(s)
 {
-  va_list vl;
-  int blen,i,n;
-  char buf[1024];
+  int i,n;
 
-  if ( ! getlock() )
-    return;
-
-  va_start(vl, fmt);
-
-  blen = vsnprintf(buf, 1024, fmt, vl);
 
   if ( debug_to_tty )
     fputs(buf, stderr);
 
   for ( i = 0; i < debug_handles_count; ++i )
   {
-    n = tcp_check_state(debug_handles[i]);
+    n = ap_tcp_check_state(debug_handles[i]);
 
     if ( n == -1 || (n & 4) != 0 )
       remove_debug_handle_internal(debug_handles[i]);
     else
-      write(debug_handles[i], buf, blen); //don't use tcpsend,etc, as it is may try to show some debug and do the loop
+      write(debug_handles[i], buf, buflen); //don't use tcpsend,etc, as it is may try to show some debug and do the loop
+  }
+}
+
+//=================================================================
+void debuglog(char *fmt, ...)
+{
+  va_list vl;
+  int buflen;
+  char buf[1024];
+  static int repeats = 0;    //this statics is for syslog-like "last msg repeated N times..."
+  static char lastmsg[1024];
+  static int lastlen = 0;
+  static time_t last_time;
+
+
+  if ( ! getlock() )
+    return;
+
+  va_start(vl, fmt);
+  buflen = vsnprintf(buf, 1023, fmt, vl);
+  va_end(vl);
+
+  if ( lastlen == buflen && 0 == strncmp(lastmsg, buf, lastlen) ) // repeat ?
+  {
+    ++repeats;
+
+    if ( last_time + 3 >= time(NULL) ) // 3 sec delay between reposts
+    {
+      buflen = sprintf(buf, "... Last message repeated %d time(s)\n", repeats);
+      debuglog_output(buf, buflen);
+      repeats = 0;
+      last_time = time(NULL);
+
+      return;
+    }
   }
 
+  if ( repeats > 0 ) // should we repost final N repeats for previous message?
+  {
+    lastlen = sprintf(lastmsg, "... and finally repeated %d time(s)\n", repeats);
+    debuglog_output(lastmsg, lastlen);
+  }
+
+  strcpy(lastmsg, buf);
+  lastlen = buflen;
+  last_time = time(NULL);
+  repeats = 0;
+
+  debuglog_output(buf, buflen);
+
   debug_mutex = 0;
-  va_end(vl);
 }
 
 //=================================================================
@@ -166,15 +205,15 @@ void dosyslog(int priority, char *fmt, ...)
   va_list vl;
   char buf[1024];
 
+
   va_start(vl, fmt);
   vsnprintf(buf, 1023, fmt, vl);
+  va_end(vl);
 
   syslog(priority, buf);
 
   if ( debug_level )
     debuglog(buf);
-
-  va_end(vl);
 }
 
 //==========================================================
@@ -184,6 +223,7 @@ int hprintf(int fh, char *fmt, ...)
   va_list vl;
   int blen,retcode;
   char buf[1024];
+
 
   va_start(vl, fmt);
 
@@ -206,54 +246,13 @@ int hputc(char c, int fh)
   return write(fh, &c, 1);
 }
 
-//=================================================================
-void *getmem(int size, char *errmsg)
-{
-  void *ptr;
-
-  ptr = malloc(size);
-
-  if ( ptr == NULL )
-  {
-    if (errmsg != NULL)
-      dosyslog(LOG_ERR, errmsg);
-
-    exit(1);
-  }
-
-  return ptr;
-}
-
-//=================================================================
-/*
-  strdup with auto free/malloc d - destination ptr, s - source
-  should we simplify this via realloc?
-*/
-int makestr(char **d, char *s)
-{
-  if ( *d != NULL )
-    free(*d);
-
-  if ( s == NULL )
-  {
-    *d = NULL;
-    return 0;
-  }
-
-  if ( (*d = (char*)malloc(strlen((char*)s) + 1) ) == NULL)
-    return 0;
-
-  strcpy( (char*)(*d), (char*)s );
-
-  return 1;
-}
-
 //==========================================================
 // memory hex dump with printable characters shown
 void memdumpfd(int fh, void *p, int len)
 {
-int i, linelen, addr, showaddr;
-unsigned char *s;
+  int i, linelen, addr, showaddr;
+  unsigned char *s;
+
 
   if (len == 0)
      return;
@@ -290,6 +289,7 @@ void memdump(void *p, int len)
 {
   int i;
 
+
   if (debug_to_tty)
     memdumpfd(fileno(stderr), p, len);
 
@@ -302,8 +302,9 @@ void memdump(void *p, int len)
 // memory bits dump
 void memdumpbfd(int fh, void *p, int len)
 {
-int i, mask, size;
-unsigned char *s;
+  int i, mask, size;
+  unsigned char *s;
+
 
   if (len == 0)
     return;
@@ -333,6 +334,7 @@ void memdumpb(void *p, int len)
 {
   int i;
 
+
   if (debug_to_tty)
     memdumpbfd(fileno(stderr), p, len);
 
@@ -341,34 +343,3 @@ void memdumpb(void *p, int len)
       memdumpbfd(debug_handles[i], p, len);
 }
 
-//==========================================================
-// copies data from src to buf. increasing size of the buf if it is smaller than needed
-int check_buf_size(char **buf, int *bufsize, int *bufpos, int needbytes)
-{
-  int n;
-
-  if ( *bufsize - *bufpos < needbytes )
-  {
-    n = *bufsize + needbytes - (*bufsize - *bufpos);
-
-    if ( NULL == realloc(*buf, n) )
-      return 0;
-
-    *bufsize = n;
-  }
-
-  return 1;
-}
-
-//==========================================================
-// copies data from src to buf. calling check_buf_size to adjust if needed
-int put_to_buf(char **buf, int *bufsize, int *bufpos, void *src, int srclen)
-{
-  if ( ! check_buf_size(buf, bufsize, bufpos, srclen) )
-    return 0;
-
-  memcpy(*buf + *bufpos, src, srclen);
-  *bufpos += srclen;
-
-  return 1;
-}

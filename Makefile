@@ -4,16 +4,25 @@ CC=gcc
 OPTS=-Wall
 # -mtune=pentium3 -m32
 
-all:  apstr.o aptcp.o b64.o
+OBJDIR=compiled
+OBJ=$(OBJDIR)/b64.o $(OBJDIR)/ap_log.o $(OBJDIR)/ap_str.o
 
-apstr.o: apstr.c
-	$(CC) -c $(OPTS) apstr.c -o apstr.o
+all: $(OBJ) ap_protection ap_net
 
-aptcp.o: aptcp.c
-	$(CC) -c $(OPTS) aptcp.c -o aptcp.o
+$(OBJDIR)/b64.o: b64.c
+	$(CC) -c $(OPTS) b64.c -o $(OBJDIR)/b64.o
 
-b64.o: b64.c
-	$(CC) -c $(OPTS) b64.c -o b64.o
+$(OBJDIR)/ap_log.o: ap_log.c ap_net
+	$(CC) -c $(OPTS) ap_log.c -o $(OBJDIR)/ap_log.o
+
+$(OBJDIR)/ap_str.o: ap_str.c
+	$(CC) -c $(OPTS) ap_str.c -o $(OBJDIR)/ap_str.o
+
+ap_net:
+	make -C ap_net
+
+ap_protection:
+	make -C ap_protection
 
 clean:
-	rm -f *.o
+	rm -f $(OBJ)
