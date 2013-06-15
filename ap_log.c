@@ -179,7 +179,7 @@ void debuglog(char *fmt, ...)
       repeats = 0;
       last_time = time(NULL);
 
-      return;
+      goto end;
     }
   }
 
@@ -196,6 +196,7 @@ void debuglog(char *fmt, ...)
 
   debuglog_output(buf, buflen);
 
+end:
   debug_mutex = 0;
 }
 

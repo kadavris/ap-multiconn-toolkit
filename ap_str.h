@@ -15,7 +15,7 @@ typedef struct
 
 
 extern void *getmem(int size, char *errmsg);//malloc with err checking. if errmsg != NULL it is reported via dosyslog and exit(1) called
-extern int makestr(char **d, char *s);// strdup with auto free/malloc d - destination ptr, s - source
+extern int makestr(char **d, const char *s);// strdup with auto free/malloc d - destination ptr, s - source
 
 
 

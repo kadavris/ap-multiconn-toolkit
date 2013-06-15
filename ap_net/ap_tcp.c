@@ -201,11 +201,20 @@ int ap_tcp_accept_connection(int list_sock) // accepts new connection and adds i
 }
 
 //=======================================================================
-int ap_tcp_check_state(int fd)
+int ap_tcp_check_state(int conn_idx)
 {
   struct timeval tv;
   fd_set fdr, fdw, fde;
   int n;
+
+
+  if(conn_idx < 0 || conn_idx >= ap_tcp_max_connections)
+    return -1;
+
+  int fd = ap_tcp_connections[conn_idx].fd;
+
+  if( fd == 0 )
+    return -1;
 
   n = send(fd, &n, 0, 0);
 
@@ -219,6 +228,7 @@ int ap_tcp_check_state(int fd)
 
   /*
   upd: maybe we should use epoll here?
+       or ivykis - library for asynchronous I/O readiness notification
 
   according to the mans what's down below is total bullshit.
   you always have to monitor for EPIPE and EAGAIN errors
@@ -244,6 +254,17 @@ int ap_tcp_check_state(int fd)
 }
 
 //=======================================================================
+int ap_tcp_connection_is_alive(int conn_idx)
+{
+  int state = ap_tcp_check_state(conn_idx);
+
+  if(state == -1 || 0 != (state & 4))
+    return 0;
+
+  return 1;
+}
+
+//=======================================================================
 // used as sigaction() EPIPE handler to prevent dumping when connection dropped unexpectedly
 void ap_tcp_check_conns(int a)
 {
@@ -254,7 +275,7 @@ void ap_tcp_check_conns(int a)
     if ( ap_tcp_connections[i].fd == 0 )
       continue;
 
-    n = ap_tcp_check_state(ap_tcp_connections[i].fd);
+    n = ap_tcp_check_state(i);
 
     if ( n != -1 && ((n & 4) == 0) )
       continue;

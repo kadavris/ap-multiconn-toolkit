@@ -28,9 +28,9 @@ static uint8_t if_addresses[10][8]; // holds MAC addresses of found active ether
 static int if_addresses_count;
 
 #define KEYWORDS_COUNT 3
-#define APPKW_HOST    1
-#define APPKW_LICENSE 2
-#define APPKW_DATA    3
+#define APPKW_HOST     1
+#define APPKW_LICENSE  2
+#define APPKW_DATA     3
 
 static struct
 {

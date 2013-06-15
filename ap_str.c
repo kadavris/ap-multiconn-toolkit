@@ -18,7 +18,7 @@
   strdup with auto free/malloc d - destination ptr, s - source
   should we simplify this via realloc?
 */
-int makestr(char **d, char *s)
+int makestr(char **d, const char *s)
 {
   if ( *d != NULL )
     free(*d);
@@ -193,12 +193,12 @@ int str_parse_set_separators(t_str_parse_rec *r, char *separators)
 //====================================================================
 int str_parse_get_bool(t_str_parse_rec *r)
 {
-  const int keywords_count = 6;
+#define GET_BOOL_KW_COUNT 6
   static const struct
   {
     const char *s;
     const int result;
-  } keywords[6] = {
+  } keywords[GET_BOOL_KW_COUNT] = {
     { "on", 1 },
     { "off", 0 },
     { "1", 1 },
@@ -215,10 +215,9 @@ int str_parse_get_bool(t_str_parse_rec *r)
   if ( s == NULL )
     return -1;
 
-  for( i = 0; i < keywords_count; ++i )
+  for( i = 0; i < GET_BOOL_KW_COUNT; ++i )
     if ( 0 == strcasecmp(keywords[i].s, s ) )
       return keywords[i].result;
 
   return -1;
 }
-

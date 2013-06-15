@@ -43,7 +43,7 @@ typedef struct ap_tcp_stat_t
 } ap_tcp_stat_t;
 
 #ifndef AP_TCP_C
-extern int max_tcp_connections;   // max tcp connections to maintain
+extern int ap_tcp_max_connections;   // max tcp connections to maintain
 extern struct timeval max_tcp_conn_time;   // max tcp connection stall time. forced close after that)
 extern struct ap_tcp_connection_t *ap_tcp_connections; // malloc'd on config read when 'max_tCPConnections' is known
 extern int ap_tcp_conn_count;
@@ -54,6 +54,7 @@ extern int  ap_tcp_accept_connection(int list_sock); // accepts new connection a
 extern void ap_tcp_check_conns(int dummy); // used as sigaction() EPIPE handler to prevent dumping when connection dropped unexpectedly
 extern int  ap_tcp_check_state(int fd);
 extern void ap_tcp_close_connection(int conn_idx, char *msg); // close tcp connection by index, msg !=NULL to post some answer before close
+extern int ap_tcp_connection_is_alive(int conn_idx); // returns true if alive
 extern void ap_tcp_connection_module_init(void);
 extern int  ap_tcp_conn_recv(int conn_idx, void *buf, int size);
 extern int  ap_tcp_conn_send(int conn_idx, void *buf, int size);
