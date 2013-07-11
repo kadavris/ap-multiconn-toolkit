@@ -5,7 +5,7 @@ OPTS ?= -Wall
 # -mtune=pentium3 -m32
 
 OBJDIR ?= compiled
-obj=$(OBJDIR)/b64.o $(OBJDIR)/ap_log.o $(OBJDIR)/ap_str.o
+obj=$(OBJDIR)/b64.o $(OBJDIR)/ap_log.o $(OBJDIR)/ap_str.o  $(OBJDIR)/ap_utils.o
 
 all: $(obj) ap_protection ap_net
 
@@ -17,6 +17,9 @@ $(OBJDIR)/ap_log.o: ap_log.c ap_net
 
 $(OBJDIR)/ap_str.o: ap_str.c
 	$(cc) -c $(OPTS) ap_str.c -o $(OBJDIR)/ap_str.o
+
+$(OBJDIR)/ap_utils.o: ap_utils.c
+	$(cc) -c $(OPTS) ap_utils.c -o $(OBJDIR)/ap_utils.o
 
 ap_net:
 	make -C ap_net $*

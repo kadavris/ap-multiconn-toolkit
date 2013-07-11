@@ -302,3 +302,40 @@ void ap_tcp_print_stat(void)
   debuglog("# aptcp: total time: %ld sec, avg per conn: %ld.%03ld\n", ap_tcp_stat.total_time.tv_sec,
     n / 1000000000u, n % 1000000000u);
 }
+
+//=======================================================================
+int ap_tcp_set_expire(int conn_idx, int mode, int msec)
+{
+  struct timeval tv;
+
+
+  if ( msec < 100 || -1 == ap_tcp_connection_is_alive(conn_idx) )
+    return 0;
+
+  switch( mode )
+  {
+    case AP_TCP_EXP_ADD:
+      tv.tv_sec = msec / 1000;
+      tv.tv_usec = 1000 * (msec % 1000);
+      timeradd(&ap_tcp_connections[conn_idx].expire, &tv, &ap_tcp_connections[conn_idx].expire);
+      break;
+
+    case AP_TCP_EXP_SUB:
+      tv.tv_sec = msec / 1000;
+      tv.tv_usec = 1000 * (msec % 1000);
+      timersub(&ap_tcp_connections[conn_idx].expire, &tv, &ap_tcp_connections[conn_idx].expire);
+      break;
+
+    case AP_TCP_EXP_SET:
+      gettimeofday(&ap_tcp_connections[conn_idx].expire, NULL);
+      tv.tv_sec = msec / 1000;
+      tv.tv_usec = 1000 * (msec % 1000);
+      timeradd(&ap_tcp_connections[conn_idx].expire, &tv, &ap_tcp_connections[conn_idx].expire);
+      break;
+
+    default:
+      return 0;
+  }
+
+  return 1;
+}
