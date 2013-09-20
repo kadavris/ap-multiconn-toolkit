@@ -2,7 +2,23 @@
 #define AP_UTILS_C
 #include "ap_utils.h"
 
-int ap_utils_timeval_set(struct timeval &tv, int mode, int msec)
+//=========================================================
+int ap_utils_timeval_cmp_to_now(struct timeval *tv)
+{
+    struct timeval now;
+
+    gettimeofday(&now, 0);
+
+    if ( timercmp(tv, &now, >) )
+        return 1;
+    else if ( timercmp(tv, &now, <) )
+        return -1;
+
+    return 0;
+}
+
+//=========================================================
+int ap_utils_timeval_set(struct timeval *tv, int mode, int msec)
 {
   struct timeval tmp;
 
@@ -25,10 +41,15 @@ int ap_utils_timeval_set(struct timeval &tv, int mode, int msec)
       break;
 
     case AP_UTILS_TIMEVAL_SET:
-      gettimeofday(tv, NULL);
+      gettimeofday(tv, 0);
       tmp.tv_sec = msec / 1000;
       tmp.tv_usec = 1000 * (msec % 1000);
       timeradd(tv, &tmp, tv);
+      break;
+
+    case AP_UTILS_TIMEVAL_SET_FROMZERO:
+      tv->tv_sec = msec / 1000;
+      tv->tv_usec = 1000 * (msec % 1000);
       break;
 
     default:
@@ -36,6 +57,26 @@ int ap_utils_timeval_set(struct timeval &tv, int mode, int msec)
   }
 
   return 1;
+}
+
+//=========================================================
+uint16_t count_crc16(void *mem, int len)
+{
+  uint16_t a, crc16;
+  uint8_t *pch;
+
+  pch = (uint8_t *)mem;
+  crc16 = 0;
+
+  while(len--)
+  {
+    crc16 ^= *pch;
+    a = (crc16 ^ (crc16 << 4)) & 0x00FF;
+    crc16 = (crc16 >> 8) ^ (a << 8) ^ (a << 3) ^ (a >> 4);
+    ++pch;
+  }
+
+  return(crc16);
 }
 
 #endif

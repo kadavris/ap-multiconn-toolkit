@@ -8,7 +8,9 @@
 #define AP_PROT_KEY_STATE_BAD_PRODUCT_ID  4
 #define AP_PROT_KEY_STATE_BAD_ISSUER      5
 
-typedef struct ap_prot_mac
+#define AP_PROT_KEY_ENCODING_BASIC 0
+
+typedef struct ap_prot_mac // MAC address
 {
   uint8_t mac[8]; // 6 bytes actually, 8 to make it aligned
 } ap_prot_mac;
@@ -21,8 +23,8 @@ typedef struct t_ap_prot_host_key
   int key_state;
   int macs_count;
   struct ap_prot_mac *macs;
-  int datalen;
-  void *data;
+  int data_len; // key's data block length
+  void *data; // key's data
   char product_id[AP_PROT_MAX_PRODID_LEN + 1];
   char issuer[AP_PROT_MAX_ISSUER_LEN + 1];
   time_t start, expires, issued;
@@ -34,6 +36,8 @@ typedef struct t_ap_prot_keyring
   int count;
   char product_id[AP_PROT_MAX_PRODID_LEN + 1];
   char issuer[AP_PROT_MAX_ISSUER_LEN + 1];
+  int encoding;
+  void *encoder_data;
 } t_ap_prot_keyring;
 
 #ifndef APPROTECTION_C
@@ -55,7 +59,7 @@ extern int ap_protect_host_key_validate(t_ap_prot_host_key *key);
 // keyring functions
 //------------------------------------------------------------------
 // constructor. NULL if error
-extern t_ap_prot_keyring *ap_protect_keyring_create(char *in_product_id, char *in_issuer, char *in_license_text);
+extern t_ap_prot_keyring *ap_protect_keyring_create(char *in_product_id, char *in_issuer, int encoding);
 // destructor
 extern void ap_protect_keyring_destroy(t_ap_prot_keyring *key);
 // imports license data from one line of license file. returns 0 if error

@@ -3,27 +3,31 @@
 	<FileVersion major="1" minor="6" />
 	<Project>
 		<Option title="AP&apos;s toolkit" />
+		<Option platforms="Unix;" />
+		<Option makefile_is_custom="1" />
 		<Option pch_mode="2" />
 		<Option compiler="cygwin" />
 		<Build>
 			<Target title="Debug">
-				<Option output="bin/Debug/libAP&apos;s toolkit" prefix_auto="1" extension_auto="1" />
+				<Option platforms="Unix;" />
+				<Option output="bin/Debug/aptoolkit" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="" />
 				<Option object_output="obj/Debug/" />
-				<Option type="3" />
+				<Option type="2" />
 				<Option compiler="cygwin" />
 				<Option createDefFile="1" />
-				<Option createStaticLib="1" />
 				<Compiler>
 					<Add option="-g" />
 				</Compiler>
 			</Target>
 			<Target title="Release">
-				<Option output="bin/Release/libAP&apos;s toolkit" prefix_auto="1" extension_auto="1" />
+				<Option platforms="Unix;" />
+				<Option output="bin/Release/aptoolkit" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="" />
 				<Option object_output="obj/Release/" />
-				<Option type="3" />
+				<Option type="2" />
 				<Option compiler="cygwin" />
 				<Option createDefFile="1" />
-				<Option createStaticLib="1" />
 				<Compiler>
 					<Add option="-O2" />
 				</Compiler>
@@ -32,14 +36,76 @@
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
+		<Unit filename="ap_error.h">
+			<Option compilerVar="CC" />
+			<Option compile="1" />
+			<Option link="1" />
+		</Unit>
+		<Unit filename="ap_error/internal_errnos.h" />
+		<Unit filename="ap_error/internal_strings.h" />
 		<Unit filename="ap_log.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="ap_log.h" />
-		<Unit filename="ap_net/ap_tcp.c">
+		<Unit filename="ap_net/ap_net.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="ap_net/ap_tcp.h" />
+		<Unit filename="ap_net/ap_net.h" />
+		<Unit filename="ap_net/ap_net.tests.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ap_net/conn_pool/accept_connection.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ap_net/conn_pool/bind.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ap_net/conn_pool/check_conns.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ap_net/conn_pool/check_state_sel.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ap_net/conn_pool/close_connection.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ap_net/conn_pool/conn_pool_internals.h" />
+		<Unit filename="ap_net/conn_pool/connection_is_alive.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ap_net/conn_pool/create.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ap_net/conn_pool/move_conn.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ap_net/conn_pool/poll.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ap_net/conn_pool/poller_utils.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ap_net/conn_pool/print_stat.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ap_net/conn_pool/recv.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ap_net/conn_pool/send.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ap_net/conn_pool/set_max_connections.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ap_net/conn_pool/utils.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ap_net/poller/create.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ap_net/poller/single_fd.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="ap_protection/ap_protection.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -48,19 +114,20 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="ap_str.h" />
+		<Unit filename="ap_utils.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ap_utils.h" />
 		<Unit filename="b64.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="b64.h" />
-		<Unit filename="main.c">
-			<Option compilerVar="CC" />
-		</Unit>
 		<Extensions>
 			<DoxyBlocks>
 				<comment_style block="0" line="0" />
 				<doxyfile_project />
-				<doxyfile_build />
-				<doxyfile_warnings />
+				<doxyfile_build extract_all="1" extract_private="1" extract_static="1" />
+				<doxyfile_warnings warn_if_undocumented="1" />
 				<doxyfile_output />
 				<doxyfile_dot />
 				<general />
