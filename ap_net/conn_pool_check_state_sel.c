@@ -1,5 +1,6 @@
-#define AP_NET_CONN_POOL
-
+/* Part of AP's Toolkit
+ * ap_net/conn_pool_check_state_sel.c
+ */
 #include "conn_pool_internals.h"
 
 /*
@@ -7,11 +8,11 @@ static const char *_func_name = "ap_net_conn_pool_check_state_sel()";
 */
 
 /* ********************************************************************** */
-/** \brief checking connection state old way via select()
+/** \brief Checking connection state, old way via select()
  *
  * \param pool struct ap_net_conn_pool_t*
  * \param conn_idx int
- * \return int
+ * \return int bitmask: b1 = data waiting, b2 = can send, b3 = error
  *
  * \deprecated
  */

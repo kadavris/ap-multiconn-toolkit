@@ -1,17 +1,18 @@
-#define AP_NET_CONN_POOL
-
+/* Part of AP's Toolkit
+ * ap_net/conn_pool_check_conns.c
+ */
 #include "conn_pool_internals.h"
 
 static const char *_func_name = "ap_net_conn_pool_check_conns()";
 
 /* ********************************************************************** */
-/** \brief Can be used in sigaction() EPIPE handler to prevent dumping when connection dropped unexpectedly
+/** \brief Polls connections and closes all with errors
  *
  * \param pool struct ap_net_conn_pool_t*
  * \return int 1 - all OK (even if some connections was removed), 0 - some general error occured. -1 - listener socket error
  *
- * Polls connections and closes all with errors.
- * use ap_net_conn_pool_poll() to do accept() action also
+ * Can be used in sigaction() EPIPE handler to prevent dumping when connection dropped unexpectedly.
+ * Recommended to use ap_net_conn_pool_poll() to do full scale processing with blackjack and hookers
  */
 int ap_net_conn_pool_check_conns(struct ap_net_conn_pool_t *pool)
 {
@@ -66,7 +67,7 @@ int ap_net_conn_pool_check_conns(struct ap_net_conn_pool_t *pool)
 
         conn->state |= AP_NET_ST_ERROR;
 
-        ap_net_conn_pool_close_connection(pool, conn->idx, NULL);
+        ap_net_conn_pool_close_connection(pool, conn->idx);
     } /* for ( event_idx = 0; event_idx < events_count; ++event_idx) */
 
     return 1;

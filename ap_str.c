@@ -1,6 +1,8 @@
-/*
-  apstr.c: string manipulation and alike functions. written by Andrej Pakhutin for his own use primarily.
-*/
+/* Part of AP's Toolkit
+ * Miscellaneous strings functions module
+ * ap_str.c
+ */
+#define AP_STR_C
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,17 +11,28 @@
 #include <stdarg.h>
 #include <sys/socket.h>
 
-#define _AP_STR_C
 #include "ap_log.h"
 #include "ap_str.h"
 
 /* ********************************************************************** */
 /** \brief strdup() with automatic free/malloc
  *
- * \param d char**
- * \param s const char*
- * \return int
+ * \param d char** - Destination. pointer to variable holding the current string
+ * \param s const char* - Source string
+ * \return int - true/false
  *
+ * Example:
+ * //We set value to default first and if we get some other data we overwrite the default with new.
+ * char *default = "Default value"; // that we will still have if n other data will arrive in buffer
+ * char *buffer; // some input buffer
+ * char *value = NULL; // note the initial value should be NULL. no static initializers allowed too, as it will be attempted to be free()'s
+ *
+ * if ( ! ap_str_makestr(&value, default)) // setting it to default value
+ * 		error()
+ *
+ * if ( get_data_into_buffer(buffer) )
+ * 		if ( ! ap_str_makestr(&value, buffer)) / and re-setting it to new value
+ * 			error()
  */
 int ap_str_makestr(char **d, const char *s)
 {
@@ -42,9 +55,9 @@ int ap_str_makestr(char **d, const char *s)
 /* ********************************************************************** */
 /** \brief malloc() helper with automatic self-destruction on out of memory
  *
- * \param size int
- * \param errmsg char*
- * \return void*
+ * \param size int - How much to allocate
+ * \param errmsg char* - string goes to syslog in case of error
+ * \return void* - pointer to the newly allocated buffer.
  *
  * Tries to allocate memory. if malloc() fails it outputs message from errmsg argument
  * to syslog facility and aborts program
@@ -70,15 +83,15 @@ void *ap_str_getmem(int size, char *errmsg)
 /* ********************************************************************** */
 /** \brief dst_buf is checked for enough free space and then resized if being too small
  *
- * \param dst_buf char**
- * \param dst_buf_size int*
- * \param dst_buf_pos int*
- * \param need_bytes int
- * \return int
+ * \param dst_buf char** - pointer to receiver buffer variable
+ * \param dst_buf_size int* - pointer to variable holding the size of receiver allocated pool
+ * \param dst_buf_pos int* - ponter to variable holding the current position inside the receiver pool
+ * \param need_bytes int - How much more data we need to put into receiver pool
+ * \return int true if OK, false if malloc() failed
  *
  * Useful helper for standard trios of buffer/buffer_pos/buffer_size
  * Call it before copying or receiving known amount of data into buffer
- * to enlarge it if it needed. updates buffer_size variable as well
+ * to enlarge it if it needed. updates dst_buf_size variable as well
  */
 int ap_str_fix_buf_size(char **dst_buf, int *dst_buf_size, int *dst_buf_pos, int need_bytes)
 {
@@ -99,17 +112,18 @@ int ap_str_fix_buf_size(char **dst_buf, int *dst_buf_size, int *dst_buf_pos, int
 }
 
 /* ********************************************************************** */
-/** \brief copies data from src_buf to dst_buf. adjusting dst_buf's size and position marker
+/** \brief Copies data from src_buf to dst_buf. adjusting dst_buf's size and position marker
  *
- * \param dst_buf char**
- * \param dst_buf_size int*
- * \param dst_buf_pos int*
- * \param src_buf void*
- * \param src_len int
+ * \param dst_buf char** - pointer to receiver buffer variable
+ * \param dst_buf_size int* - pointer to variable holding the size of receiver allocated pool
+ * \param dst_buf_pos int* - ponter to variable holding the current position inside the receiver pool
+ * \param src_buf void* - source buffer
+ * \param src_len int - length of data to be copied from source buffer
  * \return int
  *
- * dst_buf is checked for being smaller than needed by calling check_buf_size()
- * after resizing the data from src_buf copied and dst_buf_fill updated
+ * dst_buf is checked by calling ap_str_fix_buf_size(), so if it's left space is smaller than needed,
+ * the buffer is resized to provide more space.
+ * after the check, the data from src_buf copied past dst_buf_fill point and dst_buf_fill updated
  */
 int ap_str_put_to_buf(char **dst_buf, int *dst_buf_size, int *dst_buf_fill, void *src_buf, int src_len)
 {
@@ -126,15 +140,17 @@ int ap_str_put_to_buf(char **dst_buf, int *dst_buf_size, int *dst_buf_fill, void
 /* ********************************************************************** */
 /* ********************************************************************** */
 /* ********************************************************************** */
-/** \brief initializes parsing record using in_str as source
+/** \brief Initializes parsing record using in_str as source. strsep() companion set
  *
- * \param in_str char*
- * \param user_separators char*
- * \return t_str_parse_rec*
+ * \param in_str char* - source string to be parsed
+ * \param user_separators char* - list of one-character separators for strsep()
+ * \return t_str_parse_rec* - pointer to newly created parsing record
  *
  * in_str is copied into parse record struct.
  * You can supply your own string of chars to be used as separators in parsing.
- * if it is NULL then defaul space and tab wil be used
+ * if it is NULL then default 'space' and 'tab' will be used
+ *
+ * Call ap_str_parse_end() to free resources in the end.
  */
 ap_str_parse_rec_t *ap_str_parse_init(char *in_str, char *user_separators)
 {
@@ -169,9 +185,9 @@ ap_str_parse_rec_t *ap_str_parse_init(char *in_str, char *user_separators)
 }
 
 /* ********************************************************************** */
-/** \brief Frees internal structures of parsing record and release it
+/** \brief Frees internal structures of parsing record and release it. strsep() companion set
  *
- * \param r t_str_parse_rec*
+ * \param r t_str_parse_rec* - pointer to the parse structure created by ap_str_parse_init()
  * \return void
  *
  */
@@ -183,10 +199,10 @@ void ap_str_parse_end(ap_str_parse_rec_t *r)
 }
 
 /* ********************************************************************** */
-/** \brief Returns next token from parsed string
+/** \brief Returns next token from parsed string. strsep() companion set
  *
- * \param r t_str_parse_rec*
- * \return char*
+ * \param r t_str_parse_rec* - pointer to the parse structure created by ap_str_parse_init()
+ * \return char* - token or NULL if end of string
  *
  */
 char *ap_str_parse_next_arg(ap_str_parse_rec_t *r)
@@ -195,10 +211,10 @@ char *ap_str_parse_next_arg(ap_str_parse_rec_t *r)
 }
 
 /* ********************************************************************** */
-/** \brief Returns leftover string w/o parsing
+/** \brief Returns leftover string w/o parsing. strsep() companion set
  *
- * \param r t_str_parse_rec*
- * \return char*
+ * \param r t_str_parse_rec* - pointer to the parse structure created by ap_str_parse_init()
+ * \return char* - string
  *
  */
 char *ap_str_parse_get_remaining(ap_str_parse_rec_t *r)
@@ -207,11 +223,11 @@ char *ap_str_parse_get_remaining(ap_str_parse_rec_t *r)
 }
 
 /* ********************************************************************** */
-/** \brief Returning roll_count tokens back to reparse again
+/** \brief Returning roll_count tokens back to reparse again. strsep() companion set
  *
- * \param r t_str_parse_rec*
- * \param roll_count int
- * \return char*
+ * \param r t_str_parse_rec* - pointer to the parse structure created by ap_str_parse_init()
+ * \param roll_count int - how many token to count back
+ * \return char* - token or NULL if end of string
  *
  */
 char *ap_str_parse_rollback(ap_str_parse_rec_t *r, int roll_count)
@@ -243,11 +259,11 @@ char *ap_str_parse_rollback(ap_str_parse_rec_t *r, int roll_count)
 }
 
 /* ********************************************************************** */
-/** \brief Skips skip_count tokens forward.
+/** \brief Skips skip_count tokens forward. strsep() companion set
  *
- * \param r t_str_parse_rec*
- * \param skip_count int
- * \return char*
+ * \param r t_str_parse_rec* - pointer to the parse structure created by ap_str_parse_init()
+ * \param skip_count int - how many tokens to skip
+ * \return char* - token or NULL if end of string
  *
  */
 char *ap_str_parse_skip(ap_str_parse_rec_t *r, int skip_count)
@@ -261,19 +277,16 @@ char *ap_str_parse_skip(ap_str_parse_rec_t *r, int skip_count)
 }
 
 /* ********************************************************************** */
-/** \brief Set separators array to the new value. space and tab defaults will be used if NULL
+/** \brief Set separators array to the new value. space and tab defaults will be used if NULL. strsep() companion set
  *
- * \param r t_str_parse_rec*
- * \param separators char*
- * \return int
+ * \param r t_str_parse_rec* - pointer to the parse structure created by ap_str_parse_init()
+ * \param separators char* - new list of separators
+ * \return int - true/false
  *
  */
 int str_parse_set_separators(ap_str_parse_rec_t *r, char *separators)
 {
-    if ( ! ap_str_makestr(&(r->separators), ( separators != NULL ) ? separators : " \t" ) )
-        return 0;
-
-    return 1;
+    return ap_str_makestr(&(r->separators), ( separators != NULL ) ? separators : " \t" );
 }
 
 #define GET_BOOL_KW_COUNT 8
@@ -293,9 +306,9 @@ static struct
 };
 
 /* ********************************************************************** */
-/** \brief Returns int 0 or 1 as a boolean value of next token. -1 if unrecognized
+/** \brief Returns int 0 or 1 as a boolean value of next token. -1 if unrecognized. strsep() companion set
  *
- * \param r t_str_parse_rec*
+ * \param r t_str_parse_rec* - pointer to the parse structure created by ap_str_parse_init()
  * \return int
  *
  * understands the following pairs:

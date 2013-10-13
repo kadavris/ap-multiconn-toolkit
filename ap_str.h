@@ -1,6 +1,9 @@
-#ifndef _AP_STR_H
-
-#define _AP_STR_H
+/* Part of AP's Toolkit
+ * Miscellaneous strings functions module
+ * ap_str.h
+ */
+#ifndef AP_STR_H
+#define AP_STR_H
 
 #include <stdio.h>
 

@@ -1,34 +1,29 @@
 PATH1="."
 
-cc=gcc
-OPTS ?= -Wall
+CC=gcc
 # -mtune=pentium3 -m32
+CCFLAGS=$(OPTS) -Wall -ggdb
 
-OBJDIR = compiled
 libname=libaptoolkit.a
 
-src=ap_log.c ap_str.c ap_utis.c
-obj=$(OBJDIR)/ap_log.o $(OBJDIR)/ap_str.o  $(OBJDIR)/ap_utils.o $(OBJDIR)/b64.o
-ap_net_obj=ap_net/conn_pool/*.o ap_net/poller/*.o
+obj=ap_log.o ap_str.o ap_utils.o b64.o
 
-all: $(obj)
-	make -C ap_net $*
-#	make -C ap_protection $*
-	ar rcs $(libname) $(OBJDIR)/*.o $(ap_net_obj)
+all: lib compiletests
 
-$(OBJDIR)/b64.o: b64.c
-	$(cc) -c $(OPTS) b64.c -o $(OBJDIR)/b64.o
+lib: $(obj)
+	rm -f $(libname)
+	make -C ap_net $@
+	make -C ap_error $@
+	ar rcs $(libname) *.o ap_error/*.o ap_net/*.o
 
-$(OBJDIR)/ap_log.o: ap_log.c ap_net
-	$(cc) -c $(OPTS) ap_log.c -o $(OBJDIR)/ap_log.o
+%.o: %.c
+	$(CC) -c $(CCFLAGS) $< -o $@
 
-$(OBJDIR)/ap_str.o: ap_str.c
-	$(cc) -c $(OPTS) ap_str.c -o $(OBJDIR)/ap_str.o
-
-$(OBJDIR)/ap_utils.o: ap_utils.c
-	$(cc) -c $(OPTS) ap_utils.c -o $(OBJDIR)/ap_utils.o
+compiletests:
+	make -C ap_net libname=$(libname) $@
 
 clean:
-	rm -f $(OBJDIR)/*.o $(libname)
+	rm -f *.o $(libname)
+	make -C ap_error clean
 	make -C ap_net clean
-#	make -C ap_protection clean
+	make -C ap_protection clean

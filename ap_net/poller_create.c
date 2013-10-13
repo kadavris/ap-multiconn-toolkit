@@ -1,15 +1,23 @@
+/* Part of AP's Toolkit
+ * Networking module
+ * ap_net/poller_create.c
+ */
 #define AP_NET_POLLER
 
-#include "../ap_net.h"
-#include "../../ap_error/ap_error.h"
+#include "ap_net.h"
+#include "../ap_error/ap_error.h"
 #include <unistd.h>
 
 static const char *_func_name = "ap_net_poller_create()";
 
 /* ********************************************************************** */
-/*
- * listen_socket_fd can be -1 for client side
- * parent can be NULL for stand-alone poller structure creation
+/** \brief Creates poller structure, adding the listener socket if set
+ *
+ * \param listen_socket_fd int - listener socket, -1 if not used
+ * \param max_connections int - maximum connections/events count. > 0
+ * \return struct ap_net_poll_t * - pointer to the newly created structure or NULL on error
+ *
+ * This is a helper function for ap_net_conn_pool_poller_create(), but can be used to create stand-alone poller
  */
 struct ap_net_poll_t *ap_net_poller_create(int listen_socket_fd, int max_connections)
 {
@@ -22,7 +30,7 @@ struct ap_net_poll_t *ap_net_poller_create(int listen_socket_fd, int max_connect
 
     ap_error_clear();
 
-    if (listen_socket_fd >= 0)
+    if (listen_socket_fd > 0)
         ++max_connections;
 
     epoll_fd = epoll_create(max_connections);
@@ -55,6 +63,8 @@ struct ap_net_poll_t *ap_net_poller_create(int listen_socket_fd, int max_connect
     poller->listen_socket_fd = listen_socket_fd;
     poller->last_event_index = -1;
     poller->events_count = 0;
+    poller->debug = 0;
+    poller->emit_old_data_signal = 1;
 
     if ( listen_socket_fd >= 0 )
     {
@@ -73,4 +83,12 @@ struct ap_net_poll_t *ap_net_poller_create(int listen_socket_fd, int max_connect
     }
 
     return poller;
+}
+
+/* ********************************************************************** */
+void ap_net_poller_destroy(struct ap_net_poll_t *poller)
+{
+    close(poller->epoll_fd);
+    free(poller->events);
+    free(poller);
 }

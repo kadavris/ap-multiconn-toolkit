@@ -1,0 +1,6 @@
+ap_net/ap-net.tests
+*.log
+*.o
+*.rar
+*.7z
+*.a

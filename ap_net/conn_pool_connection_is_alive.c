@@ -1,5 +1,7 @@
-#define AP_NET_CONN_POOL
-
+/* Part of AP's Toolkit
+ * Networking module
+ * ap_net/conn_pool_connection_is_alive.c
+ */
 #include "conn_pool_internals.h"
 
 /*
@@ -7,17 +9,20 @@ static const char *_func_name = "ap_net_conn_pool_connection_is_alive()";
 */
 
 /* ********************************************************************** */
-/** \brief Returns AP_NET_ST_* for given connection state check
+/** \brief Returns AP_NET_ST_* as a result of given connection state check
  *
- * \param pool struct ap_net_conn_pool_t*
- * \param conn_idx int
- * \return int
+ * \param pool struct ap_net_conn_pool_t * - pointer to pool structure
+ * \param conn_idx int - Connection index in pool
+ * \return int - bitfiled of AP_NET_ST_*
  *
  * return bit field containing:
- * AP_NET_ST_ERROR if error occured in process or on connection itself
+ * AP_NET_ST_ERROR if error occurred in process or on connection itself
  * AP_NET_ST_AVAILABLE if connection is unused
  * AP_NET_ST_IN if data available for reading
+ * AP_NET_ST_OUT if socket is ready for sending data to peer
  * AP_NET_ST_CONNECTED if also believed to be alive
+ *
+ * Closes connection on expire (conn->expire > 0)
  */
 int ap_net_conn_pool_connection_is_alive(struct ap_net_conn_pool_t *pool, int conn_idx)
 {
@@ -31,9 +36,9 @@ int ap_net_conn_pool_connection_is_alive(struct ap_net_conn_pool_t *pool, int co
     if ( ! ( conn->state & AP_NET_ST_CONNECTED ) )
         return 0;
 
-    if ( timerisset( &conn->expire ) && 0 <= ap_utils_timeval_cmp_to_now(&conn->expire) )
+    if ( ap_utils_timespec_is_set( &conn->expire ) && 0 <= ap_utils_timespec_cmp_to_now(&conn->expire) )
     {
-       ap_net_conn_pool_close_connection(pool, conn_idx, NULL);
+       ap_net_conn_pool_close_connection(pool, conn_idx);
        return 0;
     }
 
@@ -49,6 +54,9 @@ int ap_net_conn_pool_connection_is_alive(struct ap_net_conn_pool_t *pool, int co
 
     if ( events & EPOLLIN ) /* data available to read */
         status |= AP_NET_ST_IN;
+
+    if ( events & EPOLLOUT ) /* can send data */
+        status |= AP_NET_ST_OUT;
 
     return status;
 }
