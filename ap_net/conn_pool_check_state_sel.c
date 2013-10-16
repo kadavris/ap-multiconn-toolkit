@@ -1,5 +1,5 @@
-/* Part of AP's Toolkit
- * ap_net/conn_pool_check_state_sel.c
+/** \file ap_net/conn_pool_check_state_sel.c
+ * \brief Part of AP's toolkit. Networking module, Connection pool: connection state checking via select() procedure
  */
 #include "conn_pool_internals.h"
 

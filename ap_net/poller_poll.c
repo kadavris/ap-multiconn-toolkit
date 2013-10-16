@@ -1,6 +1,5 @@
-/* Part of AP's Toolkit
- * Networking module
- * ap_net/poller_poll.c
+/** \file ap_net/poller_poll.c
+ * \brief Part of AP's toolkit. Networking module, Poller: standalone poller events processing procedures
  */
 #define AP_NET_CONN_POOL
 

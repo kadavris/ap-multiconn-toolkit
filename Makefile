@@ -6,7 +6,7 @@ CCFLAGS=$(OPTS) -Wall -ggdb
 
 libname=libaptoolkit.a
 
-obj=ap_log.o ap_str.o ap_utils.o b64.o
+obj=ap_log.o ap_str.o ap_utils.o
 
 all: lib compiletests
 

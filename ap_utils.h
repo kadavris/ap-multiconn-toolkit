@@ -1,7 +1,5 @@
-/* Part of AP's Toolkit
- * ap_utils.h
- * Main include for ap_utils.c modules
- * Miscellaneous small tools to ease tedious tasks
+/** \file ap_utils.h
+ * \brief Part of AP's Toolkit. Miscellaneous small tools to ease tedious tasks. Main include.
  */
 
 #ifndef AP_UTILS_H
@@ -10,22 +8,24 @@
 #include <sys/time.h>
 #include <stdint.h>
 
-/* for ap_utils_timeval_set() adds to current value */
+    /* for ap_utils_time*_set():
+     adds to current value */
 #define AP_UTILS_TIME_ADD 0
-/* subtracts from current value */
+    /* subtracts from current value */
 #define AP_UTILS_TIME_SUB 1
-/* set value to current time + offset */
+    /* set value to current time + offset */
 #define AP_UTILS_TIME_SET_FROM_NOW 2
-/* set value to offset only */
+    /* set value to offset only */
 #define AP_UTILS_TIME_SET_FROMZERO 3
 
 #ifndef AP_UTILS_C
-extern int ap_utils_timeval_cmp_to_now(struct timeval *tv); /**< performs tv cmp now, returning -1 if less, 0 if == now and 1 if past current time */
-extern int ap_utils_timeval_set(struct timeval *tv, int mode, int msec);
-extern int ap_utils_timespec_cmp_to_now(struct timespec *ts);
+extern int  ap_utils_timeval_cmp_to_now(struct timeval *tv); /* performs tv cmp now, returning -1 if less, 0 if == now and 1 if past current time */
+extern int  ap_utils_timeval_set(struct timeval *tv, int mode, int msec);
+
+extern int  ap_utils_timespec_cmp_to_now(struct timespec *ts);
 extern void ap_utils_timespec_clear(struct timespec *ts);
-extern int ap_utils_timespec_set(struct timespec *ts, int mode, int msec);
-extern int ap_utils_timespec_is_set(struct timespec *ts);
+extern int  ap_utils_timespec_set(struct timespec *ts, int mode, int msec);
+extern int  ap_utils_timespec_is_set(struct timespec *ts);
 extern void ap_utils_timespec_add(struct timespec *a, struct timespec *b, struct timespec *destination);
 extern void ap_utils_timespec_sub(struct timespec *a, struct timespec *b, struct timespec *destination);
 extern long ap_utils_timespec_elapsed(struct timespec *begin, struct timespec *end, struct timespec *destination);

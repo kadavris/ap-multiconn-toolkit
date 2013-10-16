@@ -1,8 +1,6 @@
-/* Part of AP's Toolkit
- * Networking module
- * ap_net/conn_pool_listener_create.c
+/** \file ap_net/conn_pool_listener_create.c
+ * \brief Part of AP's toolkit. Networking module, Connection pool: Pool listener socket setup procedures
  */
-
 #include "conn_pool_internals.h"
 #include <fcntl.h>
 #include <unistd.h>
@@ -37,7 +35,8 @@ int ap_net_conn_pool_listener_create(struct ap_net_conn_pool_t *pool, int max_tr
         return -1;
     }
 
-    pool->listener.sock = socket( pool->flags & AP_NET_POOL_FLAGS_IPV6 ? AF_INET6 : AF_INET, pool->flags & AP_NET_POOL_FLAGS_TCP ? SOCK_STREAM : SOCK_DGRAM, 0 );
+    pool->listener.sock = socket( bit_is_set(pool->flags, AP_NET_POOL_FLAGS_IPV6) ? AF_INET6 : AF_INET,
+                                  bit_is_set(pool->flags, AP_NET_POOL_FLAGS_TCP) ? SOCK_STREAM : SOCK_DGRAM, 0 );
 
     if ( -1 == pool->listener.sock )
     {
@@ -45,7 +44,7 @@ int ap_net_conn_pool_listener_create(struct ap_net_conn_pool_t *pool, int max_tr
         return -1;
     }
 
-    if (pool->flags & AP_NET_POOL_FLAGS_IPV6)
+    if (bit_is_set(pool->flags, AP_NET_POOL_FLAGS_IPV6))
     {
     	addr = (struct sockaddr *)(&pool->listener.addr6);
     	addr_len = sizeof(struct sockaddr_in6);
@@ -89,8 +88,8 @@ int ap_net_conn_pool_listener_create(struct ap_net_conn_pool_t *pool, int max_tr
         return -1;
 	}
 
-    if ( (pool->flags & AP_NET_POOL_FLAGS_TCP)
-    		&& 0 != listen(pool->listener.sock, pool->max_connections) )
+    if ( bit_is_set(pool->flags, AP_NET_POOL_FLAGS_TCP)
+         && 0 != listen(pool->listener.sock, pool->max_connections) )
     {
         ap_error_set_detailed(_func_name, AP_ERRNO_SYSTEM, "listen()");
         close(pool->listener.sock);

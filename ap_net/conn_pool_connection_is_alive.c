@@ -1,6 +1,5 @@
-/* Part of AP's Toolkit
- * Networking module
- * ap_net/conn_pool_connection_is_alive.c
+/** \file ap_net/conn_pool_connection_is_alive.c
+ * \brief Part of AP's toolkit. Networking module, Connection pool: Single connection state check procedures
  */
 #include "conn_pool_internals.h"
 

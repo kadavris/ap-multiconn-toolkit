@@ -1,8 +1,6 @@
-/* Part of AP's Toolkit
- * Networking module
- * ap_net/conn_pool_recv.c
+/** \file ap_net/conn_pool_recv.c
+ * \brief Part of AP's toolkit. Networking module, Connection pool: incoming conection's data storeage procedures
  */
-
 #include "conn_pool_internals.h"
 
 static const char *_func_name = "ap_net_conn_pool_recv()";
@@ -29,7 +27,7 @@ int ap_net_conn_pool_recv(struct ap_net_conn_pool_t *pool, int conn_idx)
 
     conn = &pool->conns[conn_idx];
 
-    if ( conn_idx < 0 || conn_idx > pool->max_connections || ! (conn->state & AP_NET_ST_CONNECTED) )
+    if ( conn_idx < 0 || conn_idx > pool->max_connections || ! bit_is_set(conn->state, AP_NET_ST_CONNECTED) )
     {
         ap_error_set_detailed(_func_name, AP_ERRNO_INVALID_CONN_INDEX, "%d", conn_idx);
         return -1;
@@ -56,7 +54,7 @@ int ap_net_conn_pool_recv(struct ap_net_conn_pool_t *pool, int conn_idx)
 
     conn->state |= AP_NET_ST_IN;
 
-    if ( conn->flags & AP_NET_CONN_FLAGS_UDP_IN )
+    if ( bit_is_set(conn->flags, AP_NET_CONN_FLAGS_UDP_IN) )
     {
         /* this UDP connection is outgoing only and we're doing trick with data moving from listener socket into this conn's buffer */
     	slen = (conn->remote.af == AF_INET6 ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in));

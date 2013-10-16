@@ -1,5 +1,5 @@
-/* Part of AP's Toolkit
- * ap_net/conn_pool_check_conns.c
+/** \file ap_net/conn_pool_check_conns.c
+ * \brief Part of AP's toolkit. Networking module, Connection pool: connections state checking procedures
  */
 #include "conn_pool_internals.h"
 

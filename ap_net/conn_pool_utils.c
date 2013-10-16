@@ -1,9 +1,6 @@
-/* Part of AP's Toolkit
- * Networking module
- * ap_net/conn_pool_utils.c
- * Utility functions for connection pool suite
+/** \file ap_net/conn_pool_utils.c
+ * \brief Part of AP's toolkit. Networking module, Connection pool: Miscellaneous procedures
  */
-
 #include <fcntl.h>
 #include <unistd.h>
 #include "conn_pool_internals.h"
@@ -32,7 +29,7 @@ static int lock(unsigned int *state)
 /* ********************************************************************** */
 /** \brief Locks connection against I/O operations
  *
- * \param pool struct ap_net_connection_t *
+ * \param conn struct ap_net_connection_t *
  * \return int - true - successful lock, false - timeout. probably stale lock
  */
 int ap_net_connection_lock(struct ap_net_connection_t *conn)
@@ -43,7 +40,7 @@ int ap_net_connection_lock(struct ap_net_connection_t *conn)
 /* ********************************************************************** */
 /** \brief Unlocks connection for I/O operations
  *
- * \param pool struct ap_net_connection_t *
+ * \param conn struct ap_net_connection_t *
  * \return void
  */
 void ap_net_connection_unlock(struct ap_net_connection_t *conn)
@@ -123,8 +120,7 @@ struct ap_net_connection_t *ap_net_conn_pool_get_conn_by_port(struct ap_net_conn
 /** \brief Finds first connection in pool's list using the specified local or remote address and port
  *
  * \param pool struct ap_net_conn_pool_t*
- * \param af int - address family (AF_INET/AF_INET6)
- * \param address void* - pointer to searched sockaddr_in* record's address part
+ * \param ss struct sockaddr_storage *ss - pointer to the address structure to search for
  * \param is_local - if true then search in local address records. In remote records otherwise
  * \return struct ap_net_connection_t * - connection pointer if found, NULL if not
  */
@@ -194,9 +190,9 @@ void ap_net_connection_buf_clear(struct ap_net_connection_t *conn, int fill_char
 }
 
 /* ********************************************************************** */
-/** \brief Destroys pool.
+/** \brief Destroys pool. closes listener socket and connections and freeing allocated memory
  *
- * \param conn struct ap_net_connection_t *
+ * \param pool struct ap_net_conn_pool_t *
  * \param free_this int - if true then pool's structure memory will be freed too. False for only internal parts of structure freeing
  * \return void
  */
@@ -204,6 +200,12 @@ void ap_net_conn_pool_destroy(struct ap_net_conn_pool_t *pool, int free_this)
 {
     int i;
 
+
+    if ( pool->listener.sock != -1 )
+    	close(pool->listener.sock);
+
+    if ( pool->poller != NULL )
+    	ap_net_poller_destroy(pool->poller);
 
     for ( i = 0; i < pool->max_connections; ++i)
     {
@@ -214,12 +216,6 @@ void ap_net_conn_pool_destroy(struct ap_net_conn_pool_t *pool, int free_this)
     }
 
     free(pool->conns);
-
-    if ( pool->listener.sock != -1 )
-    	close(pool->listener.sock);
-
-    if ( pool->poller != NULL )
-    	ap_net_poller_destroy(pool->poller);
 
     if ( free_this )
     	free(pool);

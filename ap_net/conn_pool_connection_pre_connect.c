@@ -1,8 +1,6 @@
-/* Part of AP's Toolkit
- * Networking module
- * ap_net/conn_pool_connection_pre_connect.c
+/** \file ap_net/conn_pool_connection_pre_connect.c
+ * \brief Part of AP's toolkit. Networking module, Connection pool: Connection structure initialization procedures
  */
-
 #include "conn_pool_internals.h"
 
 /*

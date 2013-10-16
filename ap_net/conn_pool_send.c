@@ -1,8 +1,6 @@
-/* Part of AP's Toolkit
- * Networking module
- * ap_net/conn_pool_send.c
+/** \file ap_net/conn_pool_send.c
+ * \brief Part of AP's toolkit. Networking module, Connection pool: Outgoing data processing procedures
  */
-
 #include "conn_pool_internals.h"
 #include <errno.h>
 
@@ -31,7 +29,7 @@ int ap_net_conn_pool_send_async(struct ap_net_conn_pool_t *pool, int conn_idx, v
 
     conn = &pool->conns[conn_idx];
 
-    if ( conn_idx < 0 || conn_idx > pool->max_connections || ! (conn->state & AP_NET_ST_CONNECTED) )
+    if ( conn_idx < 0 || conn_idx > pool->max_connections || ! bit_is_set(conn->state, AP_NET_ST_CONNECTED) )
     {
         ap_error_set_detailed(_func_name, AP_ERRNO_INVALID_CONN_INDEX, "%d", conn_idx);
         return 0;
@@ -39,13 +37,13 @@ int ap_net_conn_pool_send_async(struct ap_net_conn_pool_t *pool, int conn_idx, v
 
     conn->state |= AP_NET_ST_OUT;
 
-	slen = pool->flags & AP_NET_POOL_FLAGS_IPV6 ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in);
+	slen = bit_is_set(pool->flags, AP_NET_POOL_FLAGS_IPV6) ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in);
 
 	send_chunk = size;
 
     for(;;)
     {
-		if ( pool->flags & AP_NET_POOL_FLAGS_TCP )
+		if ( bit_is_set(pool->flags, AP_NET_POOL_FLAGS_TCP) )
 			n = ap_net_send(conn->fd, src_buf, send_chunk, 1);
 		else
 			n = sendto(conn->fd, src_buf, send_chunk, 0, (struct sockaddr *)&conn->remote, slen);
@@ -95,14 +93,14 @@ int ap_net_conn_pool_send(struct ap_net_conn_pool_t *pool, int conn_idx, void *s
     struct ap_net_connection_t *conn;
 
 
-    if ( pool->flags & AP_NET_POOL_FLAGS_ASYNC )
+    if ( bit_is_set(pool->flags, AP_NET_POOL_FLAGS_ASYNC) )
     	return ap_net_conn_pool_send_async(pool, conn_idx, src_buf, size);
 
     ap_error_clear();
 
     conn = &pool->conns[conn_idx];
 
-    if ( conn_idx < 0 || conn_idx > pool->max_connections || ! (conn->state & AP_NET_ST_CONNECTED) )
+    if ( conn_idx < 0 || conn_idx > pool->max_connections || ! bit_is_set(conn->state, AP_NET_ST_CONNECTED) )
     {
         ap_error_set_detailed(_func_name, AP_ERRNO_INVALID_CONN_INDEX, "%d", conn_idx);
         return 0;

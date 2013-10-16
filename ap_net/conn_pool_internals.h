@@ -1,6 +1,6 @@
-/* part of AP's Toolkit.
- * ap_net/conn_pool_internals.h
- * internal procedures definitions
+/** \file ap_net/conn_pool_internals.h
+ * \brief Part of AP's Toolkit. Internal procedures definitions
+ * \internal
  */
 #define AP_NET_CONN_POOL
 

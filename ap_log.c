@@ -1,6 +1,10 @@
-/* Part of AP's Toolkit
- * Logging and debugging module
- * ap_log.c
+/** \file ap_log.c
+ * \brief Part of AP's Toolkit. Logging and debugging functions module code
+ *
+ * ap_log_*debug* - debugging and logging procedures
+ * ap_error_get* - returns information of errors occurred inside the toolkit
+ * ap_log_h* - stdio clone for sockets
+ * ap_log_mem_dump* - various memory dumping procedures
  */
 #define AP_LOG_C
 
@@ -20,13 +24,20 @@
 int ap_log_debug_to_tty = 0; /**< If set to true will output ap_log_debug_log() messages also to stderr */
 int ap_log_debug_level = 0;  /**< Global debugging messages verbosity level */
 
-#define max_debug_handles 5 /**< Maximum count of file/socket handles that can be registered for simultaneous debug output */
-static int debug_handles[max_debug_handles];
+/** Maximum count of file/socket handles that can be registered for simultaneous debug output */
+#define max_debug_handles 5
+typedef struct debug_handles_t
+{
+    int fd; /**< file descriptor */
+    struct stat statbuf;
+} debug_handles_t;
+
+static struct debug_handles_t debug_handles[max_debug_handles];
 static int debug_handles_count = 0; /* Current number of registered handles */
 static int debug_mutex = 0; /* lock flag for internal functions */
 
-/* **********************************************************************
- * Internal
+/** \brief Simple local mutex
+ * \internal
  */
 int ap_log_get_lock(void)
 {
@@ -51,16 +62,18 @@ int ap_log_get_lock(void)
     return 1;
 }
 
-/* **********************************************************************
- * Internal
+/* ********************************************************************** */
+/** \brief Local mutex release
+ * \internal
  */
 void ap_log_release_lock(void)
 {
     debug_mutex = 0;
 }
 
-/* **********************************************************************
- * Checking if supplied file handle is already registered
+/* ********************************************************************** */
+/** \brief Checking if supplied file handle is already registered
+ * \internal
  */
 static int is_debug_handle_internal(int fd)
 {
@@ -68,13 +81,12 @@ static int is_debug_handle_internal(int fd)
 
 
     for ( i = 0; i < debug_handles_count; ++i )
-        if ( debug_handles[i] == fd )
+        if ( debug_handles[i].fd == fd )
             return 1;
 
     return 0;
 }
 
-/* ********************************************************************** */
 /** \brief Adds opened tty or socket descriptor to the list of debugging channels
  *
  * \param fd int
@@ -103,14 +115,25 @@ int ap_log_add_debug_handle(int fd)
         return 0;
     }
 
-    debug_handles[debug_handles_count++] = fd;
+    debug_handles[debug_handles_count].fd = fd;
+
+    if ( 0 != fstat(fd, &debug_handles[debug_handles_count].statbuf) )
+    {
+        ap_log_release_lock();
+        ap_error_set_custom("ap_log_add_debug_handle()", "fstat()");
+        return 0;
+    }
+
+    debug_handles_count++;
+
     ap_log_release_lock();
 
     return 1;
 }
 
-/* **********************************************************************
- * removes provided file handle from list of debugging channels
+/* ********************************************************************** */
+/** \brief removes provided file handle from list of debugging channels
+ * \internal
  */
 static int remove_debug_handle_internal(int fd)
 {
@@ -119,10 +142,10 @@ static int remove_debug_handle_internal(int fd)
 
     for ( i = 0; i < debug_handles_count; ++i )
     {
-        if ( debug_handles[i] == fd )
+        if ( debug_handles[i].fd == fd )
         {
             for ( ii = i+1; ii < debug_handles_count; ++ii )
-            	debug_handles[ii - 1] = debug_handles[ii];
+            	memcpy(&debug_handles[ii - 1], &debug_handles[ii], sizeof(debug_handles_t));
 
             --debug_handles_count;
 
@@ -153,6 +176,7 @@ int ap_log_remove_debug_handle(int fd)
         return 0;
 
     retcode = remove_debug_handle_internal(fd);
+
     ap_log_release_lock();
 
     return retcode;
@@ -174,15 +198,19 @@ int ap_log_is_debug_handle(int fd)
         return 0;
 
     retcode = is_debug_handle_internal(fd);
+
     ap_log_release_lock();
 
     return retcode;
 }
 
-/* **********************************************************************
- * Internal. outputs ready message to debug channel(s)
+/* ********************************************************************** */
+/** \brief Outputs raw message to debug channel(s)
+ *
+ * \param buf char* - source data. '\0' expected at the end anyway!
+ * \param buflen int - bytes count
  */
-void debuglog_output(char *buf, int buflen)
+void ap_log_debug_log_raw(char *buf, int buflen)
 {
     int i;
 
@@ -192,9 +220,9 @@ void debuglog_output(char *buf, int buflen)
 
     for ( i = 0; i < debug_handles_count; ++i )
     {
-    	if ( S_ISREG(debug_handles[i]) ) /* regular file? */
+    	if ( S_ISREG(debug_handles[i].statbuf.st_mode) ) /* regular file? */
     	{
-            write(debug_handles[i], buf, buflen);
+            write(debug_handles[i].fd, buf, buflen);
             continue;
     	}
 
@@ -208,9 +236,9 @@ void debuglog_output(char *buf, int buflen)
         }
         */
 
-		if ( 0 >= send(debug_handles[i], buf, buflen, MSG_NOSIGNAL))
+		if ( 0 >= send(debug_handles[i].fd, buf, buflen, MSG_NOSIGNAL))
 		{
-            remove_debug_handle_internal(debug_handles[i]);
+            remove_debug_handle_internal(debug_handles[i].fd);
             i--;
 		}
     }
@@ -236,6 +264,7 @@ void ap_log_debug_log(char *fmt, ...)
     static char lastmsg[1024];
     static int lastlen = 0;
     static time_t last_time;
+    static char* msg_repeat = "... Last message repeated %d time(s)\n";
 
 
     if ( ! ap_log_get_lock() )
@@ -245,14 +274,17 @@ void ap_log_debug_log(char *fmt, ...)
     buflen = vsnprintf(buf, 1023, fmt, vl);
     va_end(vl);
 
-    if ( lastlen == buflen && 0 == strncmp(lastmsg, buf, lastlen) ) /*  repeat ? */
+    if ( lastlen == buflen && 0 == strcmp(lastmsg, buf) ) /*  repeat ? */
     {
         ++repeats;
 
-        if ( last_time + 3 >= time(NULL) ) /*  3 sec delay between reposts */
+        if ( last_time + 3 <= time(NULL) ) /*  3 sec delay between reposts */
         {
-            buflen = sprintf(buf, "... Last message repeated %d time(s)\n", repeats);
-            debuglog_output(buf, buflen);
+            if ( repeats > 1 || lastlen > 30 ) /* it's probably nicer to report small messages again */
+                buflen = sprintf(buf, msg_repeat, repeats);
+
+            ap_log_debug_log_raw(buf, buflen);
+
             repeats = 0;
             last_time = time(NULL);
 
@@ -261,18 +293,17 @@ void ap_log_debug_log(char *fmt, ...)
         }
     }
 
-    if ( repeats > 0 ) /*  should we repost final N repeats for previous message? */
-    {
-        lastlen = sprintf(lastmsg, "... and finally repeated %d time(s)\n", repeats);
-        debuglog_output(lastmsg, lastlen);
-    }
+    if ( repeats > 1 ) /*  should we repost final N repeats for previous message? */
+        lastlen = sprintf(lastmsg, msg_repeat, repeats);
+    if ( repeats > 0 )
+        ap_log_debug_log_raw(lastmsg, lastlen);
 
     strcpy(lastmsg, buf);
     lastlen = buflen;
     last_time = time(NULL);
     repeats = 0;
 
-    debuglog_output(buf, buflen);
+    ap_log_debug_log_raw(buf, buflen);
 
     ap_log_release_lock();
 }
@@ -442,8 +473,7 @@ void ap_log_mem_dump(void *memory_area, int len)
         ap_log_mem_dump_to_fd(fileno(stderr), memory_area, len);
 
     for ( i = 0; i < debug_handles_count; ++i )
-        if (debug_handles[i] != 0)
-        	ap_log_mem_dump_to_fd(debug_handles[i], memory_area, len);
+       	ap_log_mem_dump_to_fd(debug_handles[i].fd, memory_area, len);
 }
 
 /* ********************************************************************** */
@@ -513,7 +543,6 @@ void ap_log_mem_dump_bits(void *memory_area, int len)
         ap_log_mem_dump_bits_to_fd(fileno(stderr), memory_area, len);
 
     for ( i = 0; i < debug_handles_count; ++i )
-        if (debug_handles[i] != 0)
-            ap_log_mem_dump_bits_to_fd(debug_handles[i], memory_area, len);
+        ap_log_mem_dump_bits_to_fd(debug_handles[i].fd, memory_area, len);
 }
 

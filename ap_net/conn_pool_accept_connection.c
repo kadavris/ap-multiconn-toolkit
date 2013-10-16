@@ -1,5 +1,5 @@
-/* part of AP's toolkit
- * ap_net/conn_pool_accept_connection.c
+/** \file ap_net/conn_pool_accept_connection.c
+ * \brief Part of AP's toolkit. Networking module, Connection pool: accept connection procedures
  */
 #include "conn_pool_internals.h"
 #include <unistd.h>
@@ -31,7 +31,7 @@ struct ap_net_connection_t *ap_net_conn_pool_accept_connection(struct ap_net_con
 
     ap_error_clear();
 
-    if ( pool->flags & AP_NET_POOL_FLAGS_TCP )
+    if ( bit_is_set(pool->flags, AP_NET_POOL_FLAGS_TCP) )
     {
     	conn = ap_net_conn_pool_find_free_slot(pool);
 
@@ -40,9 +40,9 @@ struct ap_net_connection_t *ap_net_conn_pool_accept_connection(struct ap_net_con
 
     	ap_net_conn_pool_connection_pre_connect(pool, conn->idx, 0);
 
-    	conn->remote.af = pool->flags & AP_NET_POOL_FLAGS_IPV6 ? AF_INET6 : AF_INET;
-        remote_addr = pool->flags & AP_NET_POOL_FLAGS_IPV6 ? (struct sockaddr *)&conn->remote.addr6 : (struct sockaddr *)&conn->remote.addr4;
-        addr_len = pool->flags & AP_NET_POOL_FLAGS_IPV6 ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in);
+    	conn->remote.af = bit_is_set(pool->flags, AP_NET_POOL_FLAGS_IPV6) ? AF_INET6 : AF_INET;
+        remote_addr = bit_is_set(pool->flags, AP_NET_POOL_FLAGS_IPV6) ? (struct sockaddr *)&conn->remote.addr6 : (struct sockaddr *)&conn->remote.addr4;
+        addr_len = bit_is_set(pool->flags, AP_NET_POOL_FLAGS_IPV6) ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in);
 
         new_sock = accept(pool->listener.sock, remote_addr, &addr_len);
 

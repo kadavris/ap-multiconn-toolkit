@@ -1,6 +1,5 @@
-/* Part of AP's toolkit
- * Networking module
- * ap_net/conn_pool_connect.c
+/** \file ap_net/conn_pool_connect.c
+ * \brief Part of AP's toolkit. Networking module, Connection pool: connection to remote peer procedures
  */
 #define AP_NET_CONN_POOL
 
@@ -19,7 +18,7 @@ static struct ap_net_connection_t *ap_net_conn_pool_do_connect(struct ap_net_con
 
     conn = &pool->conns[conn_idx];
 
-    conn->fd = socket( conn->remote.af, pool->flags & AP_NET_POOL_FLAGS_TCP ? SOCK_STREAM : SOCK_DGRAM, 0 );
+    conn->fd = socket( conn->remote.af, bit_is_set(pool->flags, AP_NET_POOL_FLAGS_TCP) ? SOCK_STREAM : SOCK_DGRAM, 0 );
 
     if ( -1 == conn->fd )
     {
@@ -28,7 +27,7 @@ static struct ap_net_connection_t *ap_net_conn_pool_do_connect(struct ap_net_con
         return NULL;
     }
 
-    if ( ! (pool->flags & AP_NET_POOL_FLAGS_TCP) ) /* do manual bind() for UDP */
+    if ( ! bit_is_set(pool->flags, AP_NET_POOL_FLAGS_TCP) ) /* do manual bind() for UDP */
     {
 		memset(&conn->local, 0, sizeof(conn->local));
     	conn->local.af = conn->remote.af;
@@ -61,7 +60,7 @@ static struct ap_net_connection_t *ap_net_conn_pool_do_connect(struct ap_net_con
     if ( conn->parent->poller != NULL && ! ap_net_conn_pool_poller_add_conn(conn->parent, conn->idx) )
     	goto lblerror;
 
-    if( ! (conn->flags & AP_NET_CONN_FLAGS_UDP_IN) )
+    if( ! bit_is_set(conn->flags, AP_NET_CONN_FLAGS_UDP_IN) )
     {
     	if ( pool->callback_func != NULL )
     		pool->callback_func(conn, AP_NET_SIGNAL_CONN_CONNECTED);
@@ -134,7 +133,7 @@ static int sanity_check(struct ap_net_conn_pool_t *pool, int port, int expire_in
  * \param pool struct ap_net_conn_pool_t*
  * \param flags unsigned - bit set of AP_NET_CONN_FLAGS_*
  * \param address_str char* string with remote text or IP/IP6 address
- * \param is_ip6 int - TRUE if we want to connect to IPv6 address
+ * \param af int - Address family (AF_INET or AF_INET6)
  * \param port - port to connect
  * \param expire_in_ms - expiration time in milliseconds. 0 if persistent
  * \return NULL on error. connection pointer if OK.

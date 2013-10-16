@@ -1,6 +1,5 @@
-/* Part of AP's Toolkit
- * Networking module
- * ap_net/conn_pool_create.c
+/** \file ap_net/conn_pool_create.c
+ * \brief Part of AP's toolkit. Networking module, Connection pool: Connection pool create procedures
  */
 #include "conn_pool_internals.h"
 

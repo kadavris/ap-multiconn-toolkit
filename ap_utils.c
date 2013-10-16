@@ -1,6 +1,5 @@
-/* Part of AP's Toolkit
- * Miscellaneous utility functions module
- * ap_utils.c
+/** \file ap_utils.c
+ * \brief Part of AP's Toolkit. Miscellaneous utility functions module
  */
 #define AP_UTILS_C
 #include "ap_utils.h"
@@ -116,7 +115,7 @@ int ap_utils_timespec_cmp_to_now(struct timespec *ts)
 /*=========================================================*/
 /** \brief Set struct timespec value based on mode flag
  *
- * \param tv struct timespec *
+ * \param ts struct timespec *
  * \param mode int - AP_UTILS_TIME_*
  * \param msec int - milliseconds. Is it absolute value or relative depends on mode
  * \return int - true/false
@@ -178,7 +177,7 @@ int ap_utils_timespec_set(struct timespec *ts, int mode, int msec)
 /*=========================================================*/
 /** \brief Set struct timespec value to zero
  *
- * \param tv struct timespec *
+ * \param ts struct timespec *
  * \return void
  */
 void ap_utils_timespec_clear(struct timespec *ts)
@@ -189,7 +188,7 @@ void ap_utils_timespec_clear(struct timespec *ts)
 /*=========================================================*/
 /** \brief Check if struct timespec value is non-zero
  *
- * \param tv struct timespec *
+ * \param ts struct timespec *
  * \return int - true/false
  */
 int ap_utils_timespec_is_set(struct timespec *ts)

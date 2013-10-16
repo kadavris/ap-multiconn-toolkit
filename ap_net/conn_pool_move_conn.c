@@ -1,6 +1,5 @@
-/* Part of AP's Toolkit
- * Networking module
- * ap_net/conn_pool_move_conn.c
+/** \file ap_net/conn_pool_move_conn.c
+ * \brief Part of AP's toolkit. Networking module, Connection pool: Connection copying/moving procedures
  */
 #include "conn_pool_internals.h"
 

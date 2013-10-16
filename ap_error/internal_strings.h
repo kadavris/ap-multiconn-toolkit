@@ -1,5 +1,5 @@
-/* Part of AP's Toolkit
- *  this is internal only stuff for error reporting procedures
+/* \file ap_error/internal_strings.h
+ * Part of AP's Toolkit. This is internal stuff for error reporting procedures
  **/
 #ifndef AP_ERROR_INTERNAL_H
 #define AP_ERROR_INTERNAL_H

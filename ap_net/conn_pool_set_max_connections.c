@@ -1,8 +1,6 @@
-/* Part of AP's Toolkit
- * Networking module
- * ap_net/conn_pool_set_max_connections.c
+/** \file ap_net/conn_pool_set_max_connections.c
+ * \brief Part of AP's toolkit. Networking module, Connection pool: Setting or changing pool maximum connections amount for pool
  */
-
 #include "conn_pool_internals.h"
 
 static const char *_func_name = "ap_net_conn_pool_set_max_connections()";

@@ -1,6 +1,5 @@
-/* Part of AP's Tookit
- * Networking module
- * ap_net/conn_pool_poll.c
+/** \file ap_net/conn_pool_poll.c
+ * \brief Part of AP's toolkit. Networking module, Connection pool: Connections pool events poll procedures
  */
 #include "conn_pool_internals.h"
 #include "../ap_utils.h"
@@ -15,7 +14,7 @@ static const char *_func_name = "ap_net_conn_pool_poll()";
  * \return int 1 if all OK, 0 if general error occurred
  *
  * Pretty much useless without callback function set in pool.
- * Closing disconnected sockets on graceful shut down by remote side (conn->state & AP_NET_ST_DISCONNECTION)
+ * Closing disconnected sockets on graceful shut down by remote side (bit_is_set(conn->state, AP_NET_ST_DISCONNECTION))
  * Closing expired connections (conn->expire > 0)
  * Calling ap_net_conn_pool_accept_connection() on incoming from listener socket. Fires AP_NET_SIGNAL_CONN_ACCEPTED inside it
  * Calling ap_net_conn_pool_recv() on incoming data available at some connection. Fires AP_NET_SIGNAL_CONN_DATA_IN signal
@@ -42,7 +41,7 @@ int ap_net_conn_pool_poll(struct ap_net_conn_pool_t *pool)
     {
     	conn = &pool->conns[i];
 
-    	if ( conn->state & AP_NET_ST_DISCONNECTION ) /* this state comes from previous poll cycle, so assuming the user did something before we drop it */
+    	if ( bit_is_set(conn->state, AP_NET_ST_DISCONNECTION) ) /* this state comes from previous poll cycle, so assuming the user did something before we drop it */
     	{
             ap_net_conn_pool_close_connection(pool, i);
             continue;
@@ -70,7 +69,7 @@ int ap_net_conn_pool_poll(struct ap_net_conn_pool_t *pool)
             if ( poller->events[event_idx].data.fd != pool->listener.sock)
             	continue;
 
-            if ( poller->events[event_idx].events & (EPOLLERR | EPOLLHUP ) ) /* connection's ERROR? */
+            if ( bit_is_set(poller->events[event_idx].events, (EPOLLERR | EPOLLHUP)) ) /* connection's ERROR? */
             {
                 ap_error_set_detailed(_func_name, AP_ERRNO_CUSTOM_MESSAGE, "epoll reports error/hangup on listener socket");
                 return 0;
@@ -93,7 +92,7 @@ int ap_net_conn_pool_poll(struct ap_net_conn_pool_t *pool)
 
             if( poller->debug )
             {
-            	if (conn->flags & AP_NET_CONN_FLAGS_UDP_IN)
+            	if ( bit_is_set(conn->flags, AP_NET_CONN_FLAGS_UDP_IN) )
                 	ap_log_debug_log("\t-P-DataIn_UDP %d %s @ %d (p:%d f:%d s:%d)\n", conn->idx,
                 			inet_ntop(conn->remote.af, (conn->remote.af == AF_INET ? (void*)&conn->remote.addr4.sin_addr : (void*)&conn->remote.addr6.sin6_addr), buf, 100),
                 			ntohs(conn->remote.addr4.sin_port), conn->bufpos, conn->buffill, conn->bufsize);
@@ -115,7 +114,7 @@ int ap_net_conn_pool_poll(struct ap_net_conn_pool_t *pool)
 
         conn = ap_net_conn_pool_get_conn_by_fd(pool, poller->events[event_idx].data.fd);
 
-        if ( conn == NULL || ! (conn->state & AP_NET_ST_CONNECTED) ) /* silently trying to free epoll of this missing connection's handle  */
+        if ( conn == NULL || ! (bit_is_set(conn->state, AP_NET_ST_CONNECTED)) ) /* silently trying to free epoll of this missing connection's handle  */
         {
             ev.events = EPOLLIN;
             ev.data.fd = poller->events[event_idx].data.fd;
@@ -128,7 +127,7 @@ int ap_net_conn_pool_poll(struct ap_net_conn_pool_t *pool)
             continue;
         }
 
-        if ( poller->events[event_idx].events & (EPOLLERR | EPOLLHUP ) ) /* connection's ERROR? */
+        if ( bit_is_set(poller->events[event_idx].events, (EPOLLERR | EPOLLHUP)) ) /* connection's ERROR? */
         {
             conn->state |= AP_NET_ST_ERROR;
 
@@ -139,7 +138,7 @@ int ap_net_conn_pool_poll(struct ap_net_conn_pool_t *pool)
             continue;
         }
 
-        if ( poller->events[event_idx].events & EPOLLIN ) /*  data available for reading */
+        if ( bit_is_set(poller->events[event_idx].events, EPOLLIN) ) /*  data available for reading */
         {
         	 if( poller->debug)
         		 ap_log_debug_log("\t-P-DATAIN %d(p:%d f:%d s:%d)", conn->idx, conn->bufpos, conn->buffill, conn->bufsize);
@@ -156,9 +155,10 @@ int ap_net_conn_pool_poll(struct ap_net_conn_pool_t *pool)
              }
              else if ( n == 0 ) /* ap_net_recv() returns this if there is no space buffer */
              {
-            	 if( poller->debug)
+            	 if( poller->debug )
             		 ap_log_debug_log(" -P- buffer full --\n");
 
+                 /*
             	 if ( conn->bufsize == 256 )
             	 {
             		 if( poller->debug)
@@ -169,6 +169,7 @@ int ap_net_conn_pool_poll(struct ap_net_conn_pool_t *pool)
             			 );
 
             	 }
+                 */
              }
              else if ( n == -2 ) /* ap_net_recv() returns this if connection is broken and user app should close it, but there can be some data left in buffer */
              {
@@ -200,7 +201,7 @@ int ap_net_conn_pool_poll(struct ap_net_conn_pool_t *pool)
              }
         } /* EPOLLIN */
 
-        if ( (pool->flags & AP_NET_POOL_FLAGS_ASYNC) && (poller->events[event_idx].events & EPOLLOUT) ) /* can send data */
+        if ( bit_is_set(pool->flags, AP_NET_POOL_FLAGS_ASYNC) && bit_is_set(poller->events[event_idx].events, EPOLLOUT) ) /* can send data */
         {
              if ( pool->callback_func != NULL )
                   pool->callback_func(conn, AP_NET_SIGNAL_CONN_CAN_SEND);
@@ -214,7 +215,7 @@ int ap_net_conn_pool_poll(struct ap_net_conn_pool_t *pool)
     {
     	conn = &pool->conns[i];
 
-    	if ( ! (conn->state & AP_NET_ST_CONNECTED) )
+    	if ( ! bit_is_set(conn->state, AP_NET_ST_CONNECTED) )
     		continue;
 
     	if ( ap_utils_timespec_is_set(&conn->expire) && 0 >= ap_utils_timespec_cmp_to_now( &conn->expire ) )

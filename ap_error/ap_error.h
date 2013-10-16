@@ -1,11 +1,10 @@
-#ifndef AP_ERROR_H
-/* Part of AP's Toolkit
-  ap_error/ap_error.h - internal!
-  error info storage
+/* \file ap_error/ap_error.h
+ * \brief Part of AP's Toolkit. Error info storage module header
+ * \internal
 */
+#ifndef AP_ERROR_H
 
 #include "../ap_log.h"
-#include "internal_errnos.h"
 
 #ifndef AP_ERROR_C
 extern void ap_error_set(const char *in_function_name, int in_errno);

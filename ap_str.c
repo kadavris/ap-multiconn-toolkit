@@ -1,6 +1,5 @@
-/* Part of AP's Toolkit
- * Miscellaneous strings functions module
- * ap_str.c
+/** \file ap_str.c
+ * \brief Part of AP's Toolkit. Miscellaneous strings manupulation functions module.
  */
 #define AP_STR_C
 #include <string.h>
@@ -22,7 +21,7 @@
  * \return int - true/false
  *
  * Example:
- * //We set value to default first and if we get some other data we overwrite the default with new.
+ * // We set value to default first and if we get some other data we overwrite the default with new.
  * char *default = "Default value"; // that we will still have if n other data will arrive in buffer
  * char *buffer; // some input buffer
  * char *value = NULL; // note the initial value should be NULL. no static initializers allowed too, as it will be attempted to be free()'s
@@ -31,7 +30,7 @@
  * 		error()
  *
  * if ( get_data_into_buffer(buffer) )
- * 		if ( ! ap_str_makestr(&value, buffer)) / and re-setting it to new value
+ * 		if ( ! ap_str_makestr(&value, buffer)) // and re-setting it to new value
  * 			error()
  */
 int ap_str_makestr(char **d, const char *s)
@@ -116,7 +115,7 @@ int ap_str_fix_buf_size(char **dst_buf, int *dst_buf_size, int *dst_buf_pos, int
  *
  * \param dst_buf char** - pointer to receiver buffer variable
  * \param dst_buf_size int* - pointer to variable holding the size of receiver allocated pool
- * \param dst_buf_pos int* - ponter to variable holding the current position inside the receiver pool
+ * \param dst_buf_fill int* - pointer to variable holding the position/offset of free space ant the end of inside the receiver pool
  * \param src_buf void* - source buffer
  * \param src_len int - length of data to be copied from source buffer
  * \return int

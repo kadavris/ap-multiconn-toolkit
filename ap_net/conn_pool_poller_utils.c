@@ -1,3 +1,6 @@
+/** \file ap_net/conn_pool_poller_utils.c
+ * \brief Part of AP's toolkit. Networking module, Connection pool: Utility procedures for connection's pool poller methods
+ */
 #define AP_NET_CONN_POOL
 
 #include "conn_pool_internals.h"

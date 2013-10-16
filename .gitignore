@@ -1,4 +1,6 @@
+doxydoc/*
 ap_net/ap-net.tests
+obj/*
 *.log
 *.o
 *.rar

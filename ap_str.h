@@ -1,12 +1,13 @@
-/* Part of AP's Toolkit
- * Miscellaneous strings functions module
- * ap_str.h
+/** \file ap_str.h
+ * \brief Part of AP's Toolkit. Miscellaneous strings functions module. Main header
  */
 #ifndef AP_STR_H
 #define AP_STR_H
 
 #include <stdio.h>
 
+/** \brief strtok() wrapper functions data storage
+*/
 typedef struct ap_str_parse_rec
 {
   char *buf, *buf_pos;

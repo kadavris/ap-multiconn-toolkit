@@ -1,8 +1,6 @@
-/* Part of AP's Toolkit
- * Networking module
- * ap_net/conn_pool_close_connection.c
+/** \file ap_net/conn_pool_close_connection.c
+ * \brief Part of AP's toolkit. Networking module, Connection pool: connection close procedures
  */
-
 #include "conn_pool_internals.h"
 #include <unistd.h>
 

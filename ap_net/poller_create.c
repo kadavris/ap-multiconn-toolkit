@@ -1,6 +1,5 @@
-/* Part of AP's Toolkit
- * Networking module
- * ap_net/poller_create.c
+/** \file ap_net/poller_create.c
+ * \brief Part of AP's toolkit. Networking module, Poller: creation and initial setup procedures
  */
 #define AP_NET_POLLER
 

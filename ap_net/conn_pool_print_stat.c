@@ -1,8 +1,6 @@
-/* Part of AP's Toolkit
- * Networking module
- * ap_net/conn_pool_print_stat.c
+/** \file ap_net/conn_pool_print_stat.c
+ * \brief Part of AP's toolkit. Networking module, Connection pool: Statistics output procedures
  */
-
 #include "conn_pool_internals.h"
 
 /* ********************************************************************** */

@@ -1,6 +1,5 @@
-/* Part of AP's Toolkit
- * Networking module
- * ap_net/poller_single_fd.c
+/** \file ap_net/poller_single_fd.c
+ * \brief Part of AP's toolkit. Networking module, Poller: Easy event poll procedures for single socket descriptor
  */
 #define AP_NET_CONN_POOL
 

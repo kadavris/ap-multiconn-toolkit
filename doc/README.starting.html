@@ -1,0 +1,928 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+  <head>
+    <meta content="text/html; charset=utf-8" http-equiv="content-type">
+    <title></title>
+    <meta name="GENERATOR" content="LibreOffice 4.1.0.4 (Windows)">
+    <meta name="CREATED" content="0;0">
+    <meta name="CHANGED" content="20131015;233407051000000">
+    <style type="text/css">
+	<!--
+		@page { margin: 2cm }
+		P { margin-bottom: 0.21cm }
+		P.western { font-size: 10pt }
+		P.cjk { font-size: 10pt }
+		H1 { margin-bottom: 0.21cm }
+		H1.western { font-family: "Arial", sans-serif; font-size: 16pt }
+		H1.cjk { font-family: "Microsoft YaHei"; font-size: 16pt }
+		H1.ctl { font-family: "Mangal"; font-size: 16pt }
+		P.код-western { background: transparent; border: 1px solid #000000; padding: 0.05cm; font-family: "Courier New", monospace; font-size: 9pt; widows: 2; orphans: 2; page-break-before: auto }
+		P.код-cjk { background: transparent; border: 1px solid #000000; padding: 0.05cm; font-size: 10pt; widows: 2; orphans: 2; page-break-before: auto }
+		P.код-ctl { background: transparent; border: 1px solid #000000; padding: 0.05cm; widows: 2; orphans: 2; page-break-before: auto }
+		A:link { so-language: zxx }
+	-->
+	</style>
+  </head>
+  <body dir="LTR" lang="en-US">
+    <h1 class="western">This guide is a quick introduction to <b>AP's
+        Toolkit</b>.</h1>
+    <p class="western">The guide is for Version 1.0 of library.</p>
+    <p class="western">There is following modules, that mostly
+      interconnect with each other:</p>
+    <ul style="margin-left: 0.64cm">
+      <li>
+        <p class="western"><a href="#2.Section%201.%20ap_net%20module.%20Connections%20pool%7Coutline"><i>ap_net</i>
+            - networking functions. Contains TCP/UDP connections pool and
+            epoll()-based helpers</a></p>
+      </li>
+      <li>
+        <p class="western"><a href="#3.Section%202.%20ap_log%20-%20logging%20and%20debugging%7Coutline"><i>ap_log</i>
+            - logging and debugging facilities. Contains log messages
+            broadcasting tools. Error control for toolkit</a></p>
+      </li>
+      <li>
+        <p class="western"><a href="#4.Section%203.%20ap_str%20-%20strings%20manipulation.%20Parsing%20and%20tokens%7Coutline"><i>ap_str</i>
+            - strings manipulation. Mainly <b>strtok()</b> wrapper</a></p>
+      </li>
+      <li>
+        <p class="western"><a href="#5.Section%204.%20ap_utils%20-%20Miscellaneous%20utilities.%7Coutline"><i>ap_utils</i>
+            - Miscellaneous utility functions that not falls into above
+            categories.</a></p>
+      </li>
+    </ul>
+    <h1 class="western"><a name="2.Section 1. ap_net module. Connections pool|outline"></a>
+      Section 1. ap_net <span lang="en-US">module. Connections pool</span></h1>
+    <p class="western"> This module have one big system: connections
+      pool. That is for client-server communication via TCP or UDP
+      messaging. You can use almost all functions directly, controlling
+      pool's connection list with manual accept/receive/send/close. But
+      intended use is partly or fully asynchronous, so you setup pool and
+      cycle poll function, that will take the burden of calling secondary
+      service procedures as accept/receive or close and notifying your
+      callback function of pending events. The callback function will
+      receive signals for all aspects of socket activity that may require
+      special attention. This include new connection or data arrival,
+      connection errors and expiration, etc.<br>
+      <br>
+      So the usage pattern on
+      server side, where we have listener socket is to <i>create pool,
+        create listener, while(something) do_poll()</i>.<br>
+      Client side is
+      the same, but instead of listener we do connect() between polls.<br>
+      <br>
+      For
+      simplicity reasons each server-type pool can have just one TCP or UDP
+      listener port, and also server pool's incoming connections are
+      limited to either IP v4 or v6 - which is set in pool's flags. The
+      client's pool with only outgoing connections ignore those
+      restrictions. Of course you can have as much pools of any kind as you
+      wish. The trick is you can have single callback function for all of
+      them, so there is really no big difference in management one or many
+      pools.<br>
+      <br>
+      <u>Now to real part. We begin with creating pool:</u></p>
+    <p class="код-western" lang="zxx"><code><font style="font-size: 9pt" size="2">struct
+ap_net_conn_pool_t
+          *pool;<br>
+          pool =
+          ap_net_conn_pool_create(POOL_FLAGS, MAX_CONNECTIONS_SLOTS,
+          DEFAULT_TIMEOUT_IN_MS, CONNECTION_RECEIVING_BUFFER_SIZE,
+          callback_function);</font></code></p>
+    <ul style="margin-left: 0.64cm">
+      <li>
+        <p class="western">Where <b>POOL_FLAGS</b> bit set controls TCP or UDP,
+          IPv4 or IPv6 modes, etc (see AP_NET_POOL_FLAGS_*)</p>
+      </li>
+      <li>
+        <p class="western"><b>MAX_CONNECTIONS_SLOTS</b><b> – </b>is hard limit
+          of possible simultaneous connections.<br>
+          You can lift or drop this number later via call to
+          ap_net_conn_pool_set_max_connections()</p>
+      </li>
+      <li>
+        <p class="western"><b>DEFAULT_TIMEOUT_IN_MS</b><b> – </b>for incoming
+          connections there will be default expiration time set from this
+          parameter value in milliseconds. Expired connections will be closed
+          automatically in polling function. Callback will be notified before
+          closing</p>
+      </li>
+      <li>
+        <p class="western">C<b>ONNECTION_RECEIVING_BUFFER_SIZE</b><b> – </b>each
+          connection in pool have individual buffer for incoming data. This is
+          how many bytes will be there.<br>
+          Set it thoughtfully. The dirty part is you are required to behave with
+          this buffer and obey some simple rules to get flawless data stream.</p>
+      </li>
+      <li>
+        <p class="western">And callback_function is our callback that gets just
+          two parameters: connection's structure pointer and signal type.<br>
+          Simply: <i>int callback_func(struct ap_net_connection_t *conn, int
+            signal_type)</i>. Signal_type is of AP_NET_SIGNAL_*<br>
+          The return value of this function should be true/false for user
+          acknowledge to accept new connection and ignored in most other cases.</p>
+      </li>
+    </ul>
+    <p class="western"><u>Then creating listener:</u></p>
+    <p class="код-western" style="widows: 2; orphans: 2; page-break-before: auto"
+
+      lang="zxx">
+      <code><font style="font-size: 9pt" size="2">if ( !
+          ap_net_conn_pool_set_str_addr(pool, (char *)BIND_ADDRESS_STRING,
+          LISTENER_PORT)<br>
+          <span lang="en-US"> </span>&nbsp;&nbsp;&nbsp; || -1 ==
+          ap_net_conn_pool_listener_create(pool, MAX_TRIES,
+          RETRY_SLEEP)<br>
+          <span lang="en-US"> </span>&nbsp;&nbsp;&nbsp; )<br>
+          <span lang="en-US"> </span>&nbsp;&nbsp;&nbsp; report_error();</font></code></p>
+    <ul style="margin-left: 0.64cm">
+      <li>
+        <p class="western"><b>ap_net_conn_pool_set_str_addr() </b>sets listener
+          binding IP address from string form and integer port.</p>
+      </li>
+      <li>
+        <p class="western"><b>ap_net_conn_pool_listener_create()</b> binds and
+          issues <b>listen()</b> call for TCP pool.<br>
+          <b>MAX_TRIES</b> parameter set count of retry attempts on <b>bind() </b>call.
+          This is useful on system start-up when daemon can be loaded prior to
+          networking interface initialization.<br>
+          The companion <b>RETRY_SLEEP</b> parameter sets sleep() seconds count
+          between tries.</p>
+      </li>
+    </ul>
+    <p class="western">Now we have ready to process incoming connections
+      pool.<br>
+      And by running something like:</p>
+    <p class="код-western"><code><font style="font-size: 9pt" size="2">for(;;)<br>
+          {<br>
+          &nbsp;&nbsp;&nbsp; if
+          ( ! ap_net_conn_pool_poll(pool) )<br>
+          &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; report_error();<br>
+          }</font></code></p>
+    <p class="western"><u>That's nearly all what is needed.<br>
+        Don't
+        forget the callback:</u></p>
+    <p class="код-western"><code><font style="font-size: 9pt" size="2"><span style="font-weight: normal">int
+          </span><b>my_callback</b><span style="font-weight: normal">(</span><span
+
+            style="font-style: normal"><span style="font-weight: normal">struct
+              ap_net_connection_t conn, int
+              signal_type)<br>
+              {<br>
+            </span></span><span style="font-style: normal"><b>&nbsp;&nbsp;&nbsp;
+              switch</b></span><span style="font-style: normal"><span style="font-weight: normal">(signal_type)<br>
+            </span></span><span style="font-style: normal"><b>&nbsp;&nbsp;&nbsp;
+              &nbsp;&nbsp;&nbsp; case</b></span><span style="font-style: normal"><span
+
+              style="font-weight: normal">
+              AP_NET_SIGNAL_CONN_CREATED:<br>
+            </span></span><span style="font-style: normal"><span style="font-weight: normal">
+            </span></span><span style="font-style: normal"><span style="font-weight: normal">
+            </span></span><i><span style="font-weight: normal">&nbsp;&nbsp;&nbsp;
+              &nbsp;&nbsp; &nbsp; &nbsp;&nbsp; /*
+              connection structure is just got created.<br>
+            </span></i><i><span style="font-weight: normal"> </span></i><i><span
+
+              style="font-weight: normal">&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+              &nbsp;&nbsp;&nbsp; This
+              is not actual network connection event.<br>
+            </span></i><i><span style="font-weight: normal"> </span></i><i><span
+
+              style="font-weight: normal">&nbsp;&nbsp; &nbsp; &nbsp;&nbsp;
+              &nbsp;&nbsp;&nbsp; Time
+              to attach your data to the connection's hook
+              */</span></i><span style="font-style: normal"><span style="font-weight: normal"><br>
+            </span></span><span style="font-style: normal"><span style="font-weight: normal">
+            </span></span><span style="font-style: normal"><span style="font-weight: normal">
+            </span></span><span style="font-style: normal"><b><br>
+              &nbsp;&nbsp;&nbsp; &nbsp;&nbsp; &nbsp; &nbsp;&nbsp;
+              allocate_connection_user_data</b></span><span style="font-style: normal"><span
+
+              style="font-weight: normal">(conn);<br>
+            </span></span><span style="font-style: normal"><span style="font-weight: normal">
+            </span></span><span style="font-style: normal"><span style="font-weight: normal">
+            </span></span><span style="font-style: normal"><b>&nbsp;&nbsp;&nbsp;
+              &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; break</b></span><span style="font-style: normal"><span
+
+              style="font-weight: normal">;<br>
+            </span></span><span style="font-style: normal"><b><br>
+              &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; case</b></span><span style="font-style: normal"><span
+
+              style="font-weight: normal">
+              AP_NET_SIGNAL_CONN_DESTROYING:<br>
+            </span></span><span style="font-style: normal"><span style="font-weight: normal">
+            </span></span><span style="font-style: normal"><span style="font-weight: normal">
+            </span></span><i><span style="font-weight: normal">&nbsp;&nbsp;&nbsp;
+              &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; /*
+              Connection structure is pending for removal.<br>
+            </span></i><i><span style="font-weight: normal"> </span></i><i><span
+
+              style="font-weight: normal">&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+              &nbsp;&nbsp;&nbsp; Can
+              be called on pool's array downsize.<br>
+            </span></i><i><span style="font-weight: normal"> </span></i><i><span
+
+              style="font-weight: normal">&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+              &nbsp;&nbsp;&nbsp; Time
+              to unhook your data binded with this connection
+              */</span></i><span style="font-style: normal"><span style="font-weight: normal"><br>
+            </span></span><span style="font-style: normal"><span style="font-weight: normal">
+            </span></span><span style="font-style: normal"><span style="font-weight: normal">
+            </span></span><span style="font-style: normal"><b><br>
+              &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+              free_connections_user_data</b></span><span style="font-style: normal"><span
+
+              style="font-weight: normal">(conn);<br>
+            </span></span><span style="font-style: normal"><span style="font-weight: normal">
+            </span></span><span style="font-style: normal"><span style="font-weight: normal">
+            </span></span><span style="font-style: normal"><b>&nbsp;&nbsp;&nbsp;
+              &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; break</b></span><span style="font-style: normal"><span
+
+              style="font-weight: normal">;<br>
+              <br>
+            </span></span><span style="font-style: normal"><b>&nbsp;&nbsp;&nbsp;
+              &nbsp;&nbsp;&nbsp; case</b></span><span style="font-style: normal"><span
+
+              style="font-weight: normal">
+              AP_NET_SIGNAL_CONN_CONNECTED:<br>
+            </span></span><i><span style="font-weight: normal">&nbsp;&nbsp;&nbsp;
+              &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; /*
+              Ah. This is out outgoing connection attempt made succesful
+              */</span></i><span style="font-style: normal"><span style="font-weight: normal"><br>
+            </span></span><span style="font-style: normal"><b><br>
+              &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+              send_first_packet_as_client</b></span><span style="font-style: normal"><span
+
+              style="font-weight: normal">(conn);<br>
+            </span></span><span style="font-style: normal"><b>&nbsp;&nbsp;&nbsp;
+              &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; break</b></span><span style="font-style: normal"><span
+
+              style="font-weight: normal">;<br>
+              <br>
+            </span></span><span style="font-style: normal"><b>&nbsp;&nbsp;&nbsp;
+              &nbsp;&nbsp;&nbsp; case</b></span><span style="font-style: normal"><span
+
+              style="font-weight: normal">
+              AP_NET_SIGNAL_CONN_ACCEPTED:<br>
+            </span></span><i><span style="font-weight: normal">&nbsp;&nbsp;&nbsp;
+              &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; /*
+              And this is new incoming connection established<br>
+              &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; and
+              waiting our
+              approval */</span></i><span style="font-style: normal"><span style="font-weight: normal"><br>
+            </span></span><span style="font-style: normal"><b><br>
+              &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; if</b></span><span
+
+            style="font-style: normal"><span style="font-weight: normal">
+              ( ! </span></span><span style="font-style: normal"><b>check_if_we_want_this_client_at_all</b></span><span
+
+            style="font-style: normal"><span style="font-weight: normal">(conn)
+              )<br>
+            </span></span><span style="font-style: normal"><b>&nbsp;&nbsp;&nbsp;
+              &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; return</b></span><span
+
+            style="font-style: normal"><span style="font-weight: normal">
+              0;<br>
+            </span></span><span style="font-style: normal"><b><br>
+              &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+              initialize_connection_user_data</b></span><span style="font-style: normal"><span
+
+              style="font-weight: normal">(conn);<br>
+            </span></span><span style="font-style: normal"><b>&nbsp;&nbsp;&nbsp;
+              &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; retu</b></span><span style="font-style: normal"><b>r</b></span><span
+
+            style="font-style: normal"><b>n</b></span><span style="font-style: normal"><span
+
+              style="font-weight: normal">
+              1;<br>
+            </span></span><span style="font-style: normal"><b><br>
+              &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; case</b></span><span style="font-style: normal"><span
+
+              style="font-weight: normal">
+              AP_NET_SIGNAL_CONN_CLOSING:<br>
+            </span></span><i><span style="font-weight: normal">&nbsp;&nbsp;&nbsp;
+              &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; /*
+              Closing by manual request, or peer graceful shutdown,<br>
+              &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; or any
+              other event or fatal error<br>
+              &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; Maybe
+              it's time to unhook your data
+              too */</span></i><span style="font-style: normal"><span style="font-weight: normal"><br>
+            </span></span><span style="font-style: normal"><b><br>
+              &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+              stop_data_processing_for_connection</b></span><span style="font-style: normal"><span
+
+              style="font-weight: normal">(conn);<br>
+            </span></span><span style="font-style: normal"><b>&nbsp;&nbsp;&nbsp;
+              &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; break</b></span><span style="font-style: normal"><span
+
+              style="font-weight: normal">;<br>
+              <br>
+            </span></span><span style="font-style: normal"><b>&nbsp;&nbsp;&nbsp;
+              &nbsp;&nbsp;&nbsp; case</b></span><span style="font-style: normal"><span
+
+              style="font-weight: normal">
+              AP_NET_SIGNAL_CONN_DATA_IN:<br>
+            </span></span><i><span style="font-weight: normal">&nbsp;&nbsp;&nbsp;
+              &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; /*
+              Some bytes arrived. You do something
+              */</span></i><span style="font-style: normal"><span style="font-weight: normal"><br>
+            </span></span><span style="font-style: normal"><b><br>
+              &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+              process_incoming_data</b></span><span style="font-style: normal"><span
+
+              style="font-weight: normal">(conn);<br>
+            </span></span><span style="font-style: normal"><b>&nbsp;&nbsp;&nbsp;
+              &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; break</b></span><span style="font-style: normal"><span
+
+              style="font-weight: normal">;<br>
+              <br>
+            </span></span><span style="font-style: normal"><b>&nbsp;&nbsp;&nbsp;
+              &nbsp;&nbsp;&nbsp; case</b></span><span style="font-style: normal"><span
+
+              style="font-weight: normal">
+              AP_NET_SIGNAL_CONN_TIMED_OUT:<br>
+            </span></span><i><span style="font-weight: normal">&nbsp;&nbsp;&nbsp;
+              &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; /*
+            </span></i><i><span style="font-weight: normal">if e</span></i><i><span
+
+              style="font-weight: normal">xpiration
+              is set </span></i><i><span style="font-weight: normal">to
+              non-zero
+              millisecs on pool creation<br>
+              &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; or
+              manually corrected in the
+              connection itself, then this signal<br>
+              &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; will
+              arrive when it's less
+              that current clock */</span></i><span style="font-style: normal"><span
+
+              style="font-weight: normal"><br>
+            </span></span><span style="font-style: normal"><b><br>
+              &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+              notify_of_slow_client</b></span><span style="font-style: normal"><span
+
+              style="font-weight: normal">(conn);<br>
+            </span></span><i><span style="font-weight: normal">&nbsp;&nbsp;&nbsp;
+              &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; /*
+              next and the last signal for this connection<br>
+              &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; will be
+              AP_NET_SIGNAL_CONN_CLOSING */</span></i><span style="font-style: normal"><span
+
+              style="font-weight: normal"><br>
+            </span></span><span style="font-style: normal"> </span><span style="font-style: normal"><b>&nbsp;&nbsp;&nbsp;
+              &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; break</b></span><span style="font-style: normal">;<br>
+            &nbsp;&nbsp;&nbsp; }
+            /* </span><span style="font-style: normal">end of switch */</span><span
+
+            style="font-style: normal"><br>
+            }
+            /* </span><span style="font-style: normal">end of callback() */</span></font></code></p>
+    <p class="western"><font style="font-size: 9pt" size="2"><span style="font-style: normal">The
+mentioned
+          hook in connection's structure is </span><i>void
+          *</i><i><span style="font-weight: normal">user_data</span></i><span style="font-style: normal"><span
+
+            style="font-weight: normal">.
+            On connection structure creation it initialized to </span></span><span
+
+          style="font-style: normal"><b>NULL</b></span><span style="font-style: normal"><span
+
+            style="font-weight: normal">,
+            so you can easy distinguish between hooked and not hooked.</span></span></font></p>
+    <p class="western"><font style="font-size: 9pt" size="2"><span style="font-style: normal"><span
+
+            style="font-weight: normal">The
+            accepting procedure closes connection immediately after emitting
+          </span></span><span style="font-style: normal"><b>AP_NET_SIGNAL_CONN_ACCEPTED</b></span><span
+
+          style="font-style: normal"><span style="font-weight: normal">
+          </span></span><span style="font-style: normal"><span style="font-weight: normal">signal
+if
+            callback returned false.</span></span></font></p>
+    <p class="western"><font style="font-size: 9pt" size="2"><span style="font-style: normal"><span
+
+            style="font-weight: normal">Default
+            expiration for incoming connections is set in
+          </span></span><span lang="zxx"><i><span style="font-weight: normal">ap_net_conn_pool_create</span></i></span><span
+
+          lang="en-US"><i><span style="font-weight: normal">()
+            </span></i></span><span lang="en-US"><span style="font-style: normal"><span
+
+              style="font-weight: normal">call.
+              The actual expiration time is corrected on accept and connect
+              events
+              to be current time + pool default. If default is set to 0, no
+              expiration is performed automatically. Beware of stalled
+              connections!
+              You can use </span></span></span><span lang="zxx"><i><span style="font-weight: normal">ap_utils_timespec_</span></i></span><span
+
+          lang="en-US"><i><span style="font-weight: normal">*
+            </span></i></span><span lang="en-US"><span style="font-style: normal"><span
+
+              style="font-weight: normal">function
+              set to manipulate conn-&gt;expire value.</span></span></span></font></p>
+    <p class="western"><font style="font-size: 9pt" size="2"><span style="font-style: normal">Check
+for
+          error and other states in bit-field </span><i>conn-&gt;state</i><span
+
+          style="font-style: normal">.
+          See </span><span style="font-style: normal"><b>AP_NET_ST_*</b></span><span
+
+          style="font-style: normal">
+          in ap_net.h for description.</span></font></p>
+    <p class="western"><font style="font-size: 9pt" size="2"><span style="font-style: normal">Upon
+receiving
+          event for incoming data</span><span style="font-style: normal">,</span><span
+
+          style="font-style: normal">
+        </span><span lang="zxx"><i>ap_net_conn_pool_poll()</i></span><span style="font-style: normal">
+          automatically calls </span><i>ap_net_conn_pool_recv()</i><span style="font-style: normal">
+          function that </span><span style="font-style: normal">tries to
+          receive data into connection's buffer. Upon arrival of some bytes</span><span
+
+          style="font-style: normal">,</span><span style="font-style: normal">
+          they are placed start</span><span style="font-style: normal">ing</span><span
+
+          style="font-style: normal">
+          from </span><i>conn-&gt;buf + conn-&gt;buffill</i><span style="font-style: normal">
+          position</span><span style="font-style: normal"> if there is some
+          space left</span><span style="font-style: normal">.<br>
+          After that
+        </span><i>conn-&gt;buffill</i><span style="font-style: normal"> is
+          added with count of bytes placed. That is your high watermark. The
+          low watermark is </span><i>conn-&gt;bufpos</i><span style="font-style: normal">.<br>
+        </span><span style="font-style: normal"><u>It
+            is mandatory that you update this marker upon processing of some
+            data</u></span><span style="font-style: normal">. It's state is
+          monitored and if it is past </span><i>conn-&gt;buffill</i><span style="font-style: normal">,<br>
+          then
+          buffer is considered "empty" and new data will arrive from
+          the start of it. The </span><i>bufpos</i><span style="font-style: normal">
+          value is set to zero then.<br>
+          So </span><span style="font-style: normal">the</span><span style="font-style: normal">
+          main rule is not to use some direct-to-buffer </span><i>char*</i><span
+
+          style="font-style: normal">
+          pointers as the data can be moved or replaced</span><span style="font-style: normal">
+          within poll() calls</span><span style="font-style: normal">.<br>
+          Always
+          check </span><i>bufpos</i><span style="font-style: normal"> and
+        </span><i>buffill</i><span style="font-style: normal"> variables.
+          Also you can force leftovers of data cleaning by setting </span><i>buffill</i><span
+
+          style="font-style: normal">
+          to zero.</span></font></p>
+    <p class="western"><font style="font-size: 9pt" size="2"><span style="font-style: normal">And
+that's
+          basically the core of process, that will allow you </span><span style="font-style: normal">to
+          start.</span></font></p>
+    <p class="western"><font style="font-size: 9pt" size="2"><span style="font-style: normal">F</span><span
+
+          style="font-style: normal">or
+          the bulk and details also check </span><span lang="zxx"><span style="font-style: normal"><b>ap_net/ap_net.tests.c</b></span></span></font></p>
+    <h1 class="western"><a name="3.Section 2. ap_log - logging and debugging|outline"></a>
+      <span style="font-style: normal">Section 2. ap_log</span><span style="font-style: normal">
+        - logging and debugging</span></h1>
+    <p class="western"><span style="font-style: normal">This facility is
+        light and clean. There is two nice global variables:</span></p>
+    <ol style="margin-left: 0.64cm">
+      <li>
+        <p class="western"><i>int ap_log_debug_to_tty</i><span style="font-style: normal">
+            -</span><span style="font-style: normal"> </span><span style="font-style: normal">Boolean</span><span
+
+            style="font-style: normal"> flag telling whether to output debug
+            messages to stderr alo</span><span style="font-style: normal">ng
+            with other registered debug channel(s)</span></p>
+      </li>
+      <li>
+        <p class="western"><span style="font-style: normal">i</span><i>nt
+            ap_log_debug_level</i><span style="font-style: normal"> -</span><span
+
+            style="font-style: normal"> </span><span style="font-style: normal">V</span><span
+
+            style="font-style: normal">erboseness of debug messages.</span><span
+
+            style="font-style: normal"> This is used inside the guts of toolkit
+            to show something from time to time, so be prepared that this will
+            be not only your messages.</span><span style="font-style: normal"><br>
+          </span><span style="font-style: normal">U</span><span style="font-style: normal">se
+            </span><i>if ( </i><i>ap_log_</i><i>debug_level &gt;= MINLEVEL )
+            say_something</i><span style="font-style: normal">; */</span></p>
+      </li>
+    </ol>
+    <p class="western"><span style="font-style: normal">First you should
+        register your opened </span><span style="font-style: normal">file or
+        socket descriptor</span><span style="font-style: normal"> as debug
+        messages output target.<br>
+      </span><span style="font-style: normal">Multiple
+        targets allowed at once. That way your messages can go to the
+        console, log file and to the pair of remote stuff members that did
+        telnet to your software's debugging port.</span></p>
+    <p class="western"><span style="font-style: normal">T</span><span style="font-style: normal">he
+      </span><span style="font-style: normal"><b>debug_handle</b></span><span style="font-style: normal">
+        group is used to add or remove file or socket descriptors to the
+        debug output list</span><span style="font-style: normal">:</span></p>
+    <ul style="margin-left: 0.64cm">
+      <li>
+        <p class="western"><i>int ap_log_add_debug_handle(int fd)</i><span style="font-style: normal">
+            - r</span><span style="font-style: normal">egister</span><span style="font-style: normal">s</span><span
+
+            style="font-style: normal"> file/s</span><span style="font-style: normal">ocket
+            </span><span style="font-style: normal">handle for debug output</span></p>
+      </li>
+      <li>
+        <p class="western"><i>int ap_log_remove_debug_handle(int fd)</i><span style="font-style: normal">
+            -</span><span style="font-style: normal"> removes handle from debug
+            output</span><span style="font-style: normal"> targets list</span></p>
+      </li>
+      <li>
+        <p class="western"><i>int ap_log_is_debug_handle(int fd)</i><span style="font-style: normal">
+            -</span><span style="font-style: normal"> checks if handle is
+            registered for debug output</span></p>
+      </li>
+    </ul>
+    <p class="western"><span style="font-style: normal">Second</span><span style="font-style: normal">,</span><span
+
+        style="font-style: normal">
+        you can start writing your messages with:</span></p>
+    <ul style="margin-left: 0.64cm">
+      <li>
+        <p class="western"><i>void ap_log_debug_log(char *fmt, ...)</i><span style="font-style: normal">
+            -</span><span style="font-style: normal"> </span><span style="font-style: normal">printf()
+            style </span><span style="font-style: normal">log</span><span style="font-style: normal">s</span><span
+
+            style="font-style: normal"> something to the debug channel(s)</span></p>
+      </li>
+      <li>
+        <p class="western"><i>void </i><i>ap_log_</i><i>debug</i><i>_</i><i>log_output(char
+            *buf, int buflen)</i><span style="font-style: normal"> -</span><span
+
+            style="font-style: normal"> writes </span><span style="font-style: normal">pure
+            </span><span style="font-style: normal">buf content into debugging
+            channel(s)</span></p>
+      </li>
+    </ul>
+    <p class="western"><span style="font-style: normal">A</span><span style="font-style: normal">dditionally
+there
+        is common syslog facility wrapper:</span></p>
+    <ul style="margin-left: 0.64cm">
+      <li>
+        <p class="western"><i>void ap_log_do_syslog(int priority, char *fmt,
+            ...)</i><span style="font-style: normal"> that</span><span style="font-style: normal">
+          </span><span style="font-style: normal">put your message to syslog </span><span
+
+            style="font-style: normal">also call</span><span style="font-style: normal">s</span><span
+
+            style="font-style: normal"> </span><i>ap_log_debug_log</i><i>()</i><span
+
+            style="font-style: normal"> if </span><i>ap_log_debug_level</i><span
+
+            style="font-style: normal"> is </span><span style="font-style: normal">&gt;
+            0</span></p>
+      </li>
+    </ul>
+    <p class="western"><span style="font-style: normal">In case of error
+        occurred inside of toolkit function, you can get it's number by
+        calling </span><i>int ap_error_get(void)</i><i>, with</i><span style="font-style: normal">
+      </span><span style="font-style: normal">code </span><span style="font-style: normal">0
+      </span><span style="font-style: normal">means</span><span style="font-style: normal">
+        no error </span><span style="font-style: normal">(see </span><span style="font-style: normal"><b>ap_error/*.h</b></span><span
+
+        style="font-style: normal">
+        for list of </span><span style="font-style: normal"><b>AP_ERROR</b></span><span
+
+        style="font-style: normal">
+        definitions.<br>
+        Complement function is </span><i>const char
+        *ap_error_get_string(void)</i><span style="font-style: normal"> that</span><span
+
+        style="font-style: normal">
+        returns string with info on last error occurred</span><span style="font-style: normal">.<br>
+        It
+        return function name where error was caught, definition of error and
+        system errno + strerror() call result if there was actually a problem
+        with some system call.</span></p>
+    <p class="western"><span style="font-style: normal">T</span><span style="font-style: normal">he
+      </span><i>ap_log_h*</i><span style="font-style: normal"> set is
+        designed to be much like fprintf/fputs/fputc standard calls, but
+        instead of FILE* argument type it works with integer file or socket
+        descriptor.</span></p>
+    <ul style="margin-left: 0.64cm">
+      <li>
+        <p class="western"><span style="font-style: normal">i</span><i>nt
+            ap_log_hprintf(int fh, char *fmt, ...)</i><span style="font-style: normal">
+            -</span><span style="font-style: normal"> like fprintf</span><span style="font-style: normal">()</span></p>
+      </li>
+      <li>
+        <p class="western"><i>int ap_log_hputs(char *str, int fh)</i><span style="font-style: normal">
+            -</span><span style="font-style: normal"> like fputs</span><span style="font-style: normal">()</span></p>
+      </li>
+      <li>
+        <p class="western"><i>int ap_log_hputc(char c, int fh)</i><i> </i><span
+
+            style="font-style: normal">- </span><span style="font-style: normal">like
+            fputc</span><span style="font-style: normal">()</span></p>
+      </li>
+    </ul>
+    <p class="western"><span style="font-style: normal">A</span><span style="font-style: normal">nd
+        a</span><i>p_log_mem_*</i><span style="font-style: normal"> group is
+      </span><span style="font-style: normal">for raw memory area byte
+        values display:</span></p>
+    <ul style="margin-left: 0.64cm">
+      <li>
+        <p class="western"><i>void ap_log_mem_dump_to_fd(int fh, void *p, int
+            len)</i><span style="font-style: normal"> -</span><span style="font-style: normal">
+            hex</span><span style="font-style: normal">adecimal </span><span style="font-style: normal">dump</span><span
+
+            style="font-style: normal"> with </span><span style="font-style: normal">printable
+            chars into specified file handle</span></p>
+      </li>
+      <li>
+        <p class="western"><i>void ap_log_mem_dump(void *p, int len)</i><i> </i><span
+
+            style="font-style: normal">- </span><span style="font-style: normal">hex</span><span
+
+            style="font-style: normal">adecimal </span><span style="font-style: normal">dump</span><span
+
+            style="font-style: normal"> with </span><span style="font-style: normal">printable
+            chars to debug channel(s)</span></p>
+      </li>
+      <li>
+        <p class="western"><i>void ap_log_mem_dump_bits_to_fd(int fh, void *p,
+            int len)</i><i> </i><span style="font-style: normal">-</span><span
+
+            style="font-style: normal"> bit</span><span style="font-style: normal">s
+            values </span><span style="font-style: normal">dump into specified
+            file handle</span></p>
+      </li>
+      <li>
+        <p class="western"><i>void ap_log_mem_dump_bits(void *p, int len)</i><span
+
+            style="font-style: normal"> -</span><span style="font-style: normal">
+            bit</span><span style="font-style: normal">s values </span><span style="font-style: normal">dump
+            into debug channel(s)</span></p>
+      </li>
+    </ul>
+    <h1 class="western"><a name="4.Section 3. ap_str - strings manipulation. Parsing and tokens|outline"></a>
+      <span style="font-style: normal">Section 3. </span><i>ap_str</i><span style="font-style: normal">
+        - strings manipulation. </span><span style="font-style: normal">Parsing
+        and tokens</span></h1>
+    <p class="western"><span style="font-style: normal">The main
+        functions set is ap_str_parse* which is wrapper around strtok(), plus
+        some additional marvels:</span></p>
+    <ul style="margin-left: 0.64cm">
+      <li>
+        <p class="western"><i>ap_str_parse_rec_t *ap_str_parse_init(char
+            *in_str, char *user_separators)</i><span style="font-style: normal">
+            - </span><span style="font-style: normal">creates new parsing
+            record from </span><i>in_str</i><span style="font-style: normal">,
+            using user_separators if not NULL</span><i> </i><span style="font-style: normal">or</span><span
+
+            style="font-style: normal"> </span><span style="font-style: normal"><u>'</u></span><span
+
+            style="font-style: normal"><u>space</u></span><span style="font-style: normal"><u>'</u></span><span
+
+            style="font-style: normal"> </span><span style="font-style: normal">and</span><span
+
+            style="font-style: normal"> </span><span style="font-style: normal"><u>'</u></span><span
+
+            style="font-style: normal"><u>tab</u></span><span style="font-style: normal"><u>'</u></span><span
+
+            style="font-style: normal"> characters as default.<br>
+            The in_str is copied into parsing record, so you may </span><span style="font-style: normal">re-use
+            it after this call.</span></p>
+      </li>
+      <li>
+        <p class="western"><i>void ap_str_parse_end(ap_str_parse_rec_t *r)</i><span
+
+            style="font-style: normal"> -</span><span style="font-style: normal">
+            destroys parse record</span><span style="font-style: normal">,
+            freeing internal memory allocations</span></p>
+      </li>
+      <li>
+        <p class="western"><i>char *ap_str_parse_next_arg(ap_str_parse_rec_t *r)</i><span
+
+            style="font-style: normal"> - return</span><span style="font-style: normal">
+            next token</span><span style="font-style: normal"> or NULL if end of
+            string</span></p>
+      </li>
+      <li>
+        <p class="western"><i>char
+            *ap_str_parse_get_remaining(ap_str_parse_rec_t *r)</i><span style="font-style: normal">
+            -</span><span style="font-style: normal"> get remnants </span><span
+
+            style="font-style: normal">of string without parsing it</span></p>
+      </li>
+      <li>
+        <p class="western"><i>char *ap_str_parse_rollback(ap_str_parse_rec_t *r,
+            int roll_count)</i><span style="font-style: normal"> -</span><span style="font-style: normal">
+            roll</span><span style="font-style: normal">ing </span><span style="font-style: normal">n
+            tokens</span><span style="font-style: normal"> back, restoring
+            unparsed string. Reparses string at the requested point and returns
+            token.</span></p>
+      </li>
+      <li>
+        <p class="western"><i>char *ap_str_parse_skip(ap_str_parse_rec_t *r, int
+            skip_count)</i><span style="font-style: normal"> - </span><span style="font-style: normal">skip
+            n tokens forward</span><span style="font-style: normal">. Returns
+            token.</span></p>
+      </li>
+      <li>
+        <p class="western"><i>int ap_str_parse_get_bool(ap_str_parse_rec_t *r)</i><span
+
+            style="font-style: normal">-</span><span style="font-style: normal">
+          </span><span style="font-style: normal">treats</span><span style="font-style: normal">
+            next </span><span style="font-style: normal">token</span><span style="font-style: normal">
+            as </span><span style="font-style: normal">textual </span><span style="font-style: normal">Boolean</span><span
+
+            style="font-style: normal"> value </span><span style="font-style: normal">and
+            returns </span><span style="font-style: normal">Boolean</span><span
+
+            style="font-style: normal"> value of it.</span><span style="font-style: normal">
+            -1 in case of error</span><span style="font-style: normal">.
+            Recognized words is </span><span style="font-style: normal">on/off</span><span
+
+            style="font-style: normal">,</span><span style="font-style: normal">
+            1/0</span><span style="font-style: normal">,</span><span style="font-style: normal">
+            true/false</span><span style="font-style: normal">, enable/disable</span><span
+
+            style="font-style: normal"><br>
+          </span></p>
+      </li>
+    </ul>
+    <p class="western"><u><b><span style="font-style: normal">Other
+            functions:</span></b></u></p>
+    <ul style="margin-left: 0.64cm">
+      <li>
+        <p class="western"><i>void </i><i>*ap_str_getmem(int size, char
+            *errmsg)</i><span style="font-style: normal"> -</span><span style="font-style: normal">
+          </span><span style="font-style: normal">A </span><i>malloc</i><span style="font-style: normal">
+            with err</span><span style="font-style: normal">or</span><span style="font-style: normal">
+            checking. </span><span style="font-style: normal">In case of error,
+          </span><span style="font-style: normal">if </span><i>errmsg</i><span
+
+            style="font-style: normal"> != NULL it is reported via </span><i>ap_log_</i><i>do</i><i>_</i><i>syslog</i><i>()</i><span
+
+            style="font-style: normal"> and </span><i>exit(1)</i><span style="font-style: normal">
+          </span><span style="font-style: normal">is </span><span style="font-style: normal">called</span><span
+
+            style="font-style: normal"> in the end</span></p>
+      </li>
+      <li>
+        <p class="western"><i>int ap_str_makestr(char **d</i><i>estination</i><i>,
+            const char *s</i><i>ource</i><i>)</i><span style="font-style: normal">
+            - </span><i>strdup</i><i>()</i><span style="font-style: normal">-like,
+            but</span><span style="font-style: normal"> with auto </span><i>free/malloc</i><span
+
+            style="font-style: normal"> </span><span style="font-style: normal">calls
+            for </span><span style="font-style: normal">d</span><span style="font-style: normal">estination.
+            if it is NULL, then it's being allocated and </span><i>strcat()</i><span
+
+            style="font-style: normal">-ted. If it is not NULL, then </span><i>free()</i><span
+
+            style="font-style: normal"> is called upon it, then </span><i>malloc()</i><span
+
+            style="font-style: normal"> and </span><i>strcat()</i><span style="font-style: normal">.
+            Used for storing some default value first and replacing it with more
+            actual data later.</span></p>
+      </li>
+      <li>
+        <p class="western"><i>int ap_str_fix_buf_size(char **buf, int *bufsize,
+            int *bufpos, int needbytes)</i><span style="font-style: normal"> -</span><span
+
+            style="font-style: normal"> checks if designated buffer can hold </span><span
+
+            style="font-style: normal">additional</span><span style="font-style: normal">
+            data </span><span style="font-style: normal">of specified size </span><span
+
+            style="font-style: normal">and </span><span style="font-style: normal">if
+            not the </span><i>realloc()</i><span style="font-style: normal"> is
+            called and </span><i>bufsize</i><span style="font-style: normal">
+            is updated</span></p>
+      </li>
+      <li>
+        <p class="western"><i>int ap_str_put_to_buf(char **buf, int *bufsize,
+            int *bufpos, void *src, int srclen)</i><span style="font-style: normal">
+            -</span><span style="font-style: normal"> puts </span><span style="font-style: normal">some
+            </span><span style="font-style: normal">data into buffer, </span><span
+
+            style="font-style: normal">calling </span><i>ap_str_fix_buf_size(</i><i>)</i><span
+
+            style="font-style: normal"> first, to check and fix, then </span><i>srclen</i><span
+
+            style="font-style: normal"> bytes is copied into </span><i>buf</i><span
+
+            style="font-style: normal">, starting with </span><i>bufpos</i><span
+
+            style="font-style: normal"> offset</span><span style="font-style: normal"><br>
+          </span><br>
+          <br>
+        </p>
+      </li>
+    </ul>
+    <h1 class="western"><a name="5.Section 4. ap_utils - Miscellaneous utilities.|outline"></a>
+      <span style="font-style: normal">Section 4. </span><i>ap_utils</i><span style="font-style: normal">
+        - Miscellaneous utilit</span><span style="font-style: normal">ies.</span></h1>
+    <p class="western">We have here one big set of time-related functions
+      dealing with <i>struct timeval</i> and <i>struct timespec</i></p>
+    <p class="western"><u><b><i>struct timeval</i> ones:</b></u></p>
+    <ul style="margin-left: 0.64cm">
+      <li>
+        <p class="western"><i>int ap_utils_timeval_cmp_to_now(struct timeval
+            *tv)</i> - performs <i>*</i><i>tv</i> versus current clock
+          comparison, returning -1 if <i>*tv</i> is less, 0 if == now and 1 if
+          past current time</p>
+      </li>
+      <li>
+        <p class="western"><i>int ap_utils_timeval_set(struct timeval *tv, int
+            mode, int msec)</i> - corrects or sets <i>*tv</i> value depending
+          on <i>mode</i>, using <i>msec</i> as milliseconds count or offset.
+          The modes are:</p>
+        <ul>
+          <li>
+            <p class="western">AP_UTILS_TIME_ADD - adds <i>msec</i>
+              amount to <i>*</i><i>t</i><i>v</i> current value</p>
+          </li>
+          <li>
+            <p class="western">AP_UTILS_TIME_SUB - subtracts <i>msec</i> amount
+              from <i>*</i><i>t</i><i>v</i> current value</p>
+          </li>
+          <li>
+            <p class="western">AP_UTILS_TIME_SET_FROM_NOW - set <i>*tv</i>
+              value to current time + <i>msec</i></p>
+          </li>
+          <li>
+            <p class="western">AP_UTILS_TIME_SET_FROMZERO - set value to <i>msec</i>
+              milliseconds</p>
+          </li>
+        </ul>
+      </li>
+    </ul>
+    <p class="western"><i><u><b>struct timespec</b></u></i><u><b> ones.</b></u>
+      Used as time values holding structures inside the <span style="font-style: normal"><b>ap_net</b></span>
+      module</p>
+    <ul style="margin-left: 0.64cm">
+      <li>
+        <p class="western"><i>int ap_utils_timespec_cmp_to_now(struct timespec
+            *ts)</i><i> </i>- performs <i>*</i><i>t</i><i>s</i> versus current
+          clock comparison, returning -1 if <i>*tv</i> is less, 0 if == now and
+          1 if past current time</p>
+      </li>
+      <li>
+        <p class="western"><i>void ap_utils_timespec_clear(struct timespec *ts)</i>
+          - sets <i>*ts</i> value to zero</p>
+      </li>
+      <li>
+        <p class="western"><i>int ap_utils_timespec_set(struct timespec *ts, int
+            mode, int msec)</i> - same as <i>ap_utils_timeval_set</i><i>()</i></p>
+      </li>
+      <li>
+        <p class="western"><i>int ap_utils_timespec_is_set(struct timespec *ts)</i>
+          - returns true if <i>*ts</i> is not zero</p>
+      </li>
+      <li>
+        <p class="western"><i>void ap_utils_timespec_add(struct timespec *a,
+            struct timespec *b, struct timespec *destination)</i> - Simply
+          calculates *destination = *a + *b</p>
+      </li>
+      <li>
+        <p class="western"><i>void ap_utils_timespec_sub(struct timespec *a,
+            struct timespec *b, struct timespec *destination)</i><i> </i>-
+          Simply calculates <i>*destination</i> = <i>*a</i> - <i>*b</i></p>
+      </li>
+      <li>
+        <p class="western">l<i>ong ap_utils_timespec_elapsed(struct timespec
+            *begin, struct timespec *end, struct timespec *destination)</i> -
+          Counts elapsed time <i>*destination</i> = <i>*end</i> - <i>*begin</i>.
+          <i>begin</i> or <i>end</i> can be NULL, in which case missing one is
+          replaced in calculation by current clock value. For example if the <i>end</i>
+          is NULL then we get <i>*destination</i> = <b>now</b> - <i>*begin</i>.
+          <i>destination</i> can be NULL too if you only need returned
+          milliseconds value.</p>
+      </li>
+      <li>
+        <p class="western"><i>long ap_utils_timespec_to_milliseconds(struct
+            timespec *ts)</i> - Return <i>*ts</i> value as milliseconds</p>
+      </li>
+    </ul>
+    <p class="western"><u><b>Other functions and features:</b></u></p>
+    <ul style="margin-left: 0.64cm">
+      <li>
+        <p class="western"><i>uint16_t count_crc16(void *mem, int len)</i> - do
+          standard CRC16 calculation of memory area of length <i>len</i></p>
+      </li>
+      <li>
+        <p class="western">bit_get(p,m), bit_is_set(p,m), bit_set(p,m),
+          bit_clear(p,m), bit_flip(p,m), bit_write(c,p,m), BIT(x) (1 &lt;&lt;
+          (x))<br>
+          is macros for bit fields manupulation</p>
+      </li>
+    </ul>
+    <p class="western">End of document.</p>
+    <p class="western">AP's Toolkit is Copyright 2013 by Andrej Pakhutin
+      kadavris&lt;at&gt;gmail.com</p>
+    <p class="western"><br>
+      <br>
+    </p>
+  </body>
+</html>
