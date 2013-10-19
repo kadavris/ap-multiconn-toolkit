@@ -269,7 +269,7 @@ char *ap_str_parse_skip(ap_str_parse_rec_t *r, int skip_count)
 {
     char *s;
 
-
+    s = r->buf_pos; /* in case of skip_count is invalid from start */
     while( skip_count-- && NULL != (s = ap_str_parse_next_arg(r)) );
 
     return s;

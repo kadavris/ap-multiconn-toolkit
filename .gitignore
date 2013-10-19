@@ -6,3 +6,5 @@ obj/*
 *.rar
 *.7z
 *.a
+*.tar
+*.bz2
