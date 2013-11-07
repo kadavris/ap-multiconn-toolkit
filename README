@@ -1,0 +1,15 @@
+This library is written in plain C to maximize compatibility and consists mainly of epoll driven connections pool module.
+
+It helps you to write applications with minimal effort to setup and maintenance of multiple simultaneous connections for client and/or server side.
+
+The pools emit call-back events for user awareness and much of the dirty work is done inside the library.
+The input is performed asynchronously and output can be either sync or async.
+
+Because of epoll usage the library is Linux only for the moment, but effort was made to allow adopting other techniques in the future by some small changes to the code and logic.
+
+The minor part of toolkit is a bunch of small utility functions that can be useful apart from networking module.
+These include tricky logging with multiple output channels, strings and time values manipulation, etc.
+
+Please see docs/* files for quick start examples and doxygen/index.html for API documentation.
+
+Original code by Andrej Pakhutin, 2013
