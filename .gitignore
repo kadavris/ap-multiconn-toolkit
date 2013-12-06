@@ -1,7 +1,10 @@
 .cproject
+.project
 .settings/*
+*.cbp
+*.layout
 doxydoc/*
-ap_net/ap-net.tests
+ap_net/ap_net.tests
 obj/*
 *.log
 *.o

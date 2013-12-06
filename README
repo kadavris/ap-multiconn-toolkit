@@ -1,15 +1,25 @@
-This library is written in plain C to maximize compatibility and consists mainly of epoll driven connections pool module.
+     Connections pool / Connections array / Connections list / Connections set library.
 
-It helps you to write applications with minimal effort to setup and maintenance of multiple simultaneous connections for client and/or server side.
+The library incorporates control mechanisms for managing multiple simultaneous TCP and UDP connections
+at the client or server side. Some additional utility functions available.
 
-The pools emit call-back events for user awareness and much of the dirty work is done inside the library.
-The input is performed asynchronously and output can be either sync or async.
+The code is written in plain C to maximize compatibility and consists mainly of epoll-driven connections pool module.
 
-Because of epoll usage the library is Linux only for the moment, but effort was made to allow adopting other techniques in the future by some small changes to the code and logic.
+The intended usage is to periodically call state checking function(s) on pool(s)
+that will emit call-back events for immediate user awareness of activity behind the connections.
+Much of the dirty work is done inside the library.
+
+The input on connections is performed asynchronously by default and output can be either sync or async.
+
+Because of epoll usage the library is Linux only for the moment,
+but effort was made to allow adopting other techniques in the future by some small changes to the code and logic.
 
 The minor part of toolkit is a bunch of small utility functions that can be useful apart from networking module.
 These include tricky logging with multiple output channels, strings and time values manipulation, etc.
 
-Please see docs/* files for quick start examples and doxygen/index.html for API documentation.
+Please see docs/* files for quick start examples and doxygen/index.html or source files for API documentation.
 
-Original code by Andrej Pakhutin, 2013
+Original code by Andrej Pakhutin (pakhutin@gmail.com), 2013
+* Main repository at the github: git clone https://github.com/kadavris/aps-toolkit.git
+* Secondary at sourceforge: git clone git://git.code.sf.net/p/apstoolkit/code apstoolkit-code
+* Compiled libraries at sourceforge: http://sourceforge.net/projects/apstoolkit/files/?source=navbar
