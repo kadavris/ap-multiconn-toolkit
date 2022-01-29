@@ -1,4 +1,4 @@
-     Connections pool / Connections array / Connections list / Connections set library.
+     A pool/array/list/set of IP Connections.
 
 The library incorporates control mechanisms for managing multiple simultaneous TCP and UDP connections
 at the client or server side. Some additional utility functions available.
@@ -11,7 +11,7 @@ Much of the dirty work is done inside the library.
 
 The input on connections is performed asynchronously by default and output can be either sync or async.
 
-Because of epoll usage the library is Linux only for the moment,
+NOTE: Because of epoll usage the library is Linux-only for the moment,
 but effort was made to allow adopting other techniques in the future by some small changes to the code and logic.
 
 The minor part of toolkit is a bunch of small utility functions that can be useful apart from networking module.
@@ -20,6 +20,6 @@ These include tricky logging with multiple output channels, strings and time val
 Please see docs/* files for quick start examples and doxygen/index.html or source files for API documentation.
 
 Original code by Andrej Pakhutin (pakhutin@gmail.com), 2013
-* Main repository at the github: git clone https://github.com/kadavris/aps-toolkit.git
+* Main repository at the github: git clone https://github.com/kadavris/ap-multiconn-toolkit.git
 * Secondary at sourceforge: git clone git://git.code.sf.net/p/apstoolkit/code apstoolkit-code
 * Compiled libraries at sourceforge: http://sourceforge.net/projects/apstoolkit/files/?source=navbar
