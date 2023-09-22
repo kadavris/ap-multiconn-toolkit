@@ -38,9 +38,10 @@ lib: $(conn_pool_obj) $(poller_obj) $(common_deps)
 
 clean:
 	rm -f $(conn_pool_obj) $(poller_obj)
+	rm -f ap_net.tests ap_net.tests.log
 
-compiletests: $(obj) ../$(libname)
-	$(CC) $(OPTS) ap_net.tests.c -o ap_net.tests -l:../$(libname)
+compiletests: $(obj) ../lib$(libname).a
+	$(CC) $(OPTS) ap_net.tests.c -o ap_net.tests -L .. -l $(libname)
 
 conn_pool_%.o:
 deps=$(conn_pool_deps)
