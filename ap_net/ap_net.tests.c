@@ -67,9 +67,9 @@ int test_message_len;
 /** \brief The Testing Plan */
 struct
 {
-	char *plan;
-	char *results;
-	int count, done, good, bad;
+    char *plan;
+    char *results;
+    int count, done, good, bad;
 } tests[2][max_clients];
 
 #define TCP_TEST_RESULT tests[TEST_IS_TCP][ud->client_id].results[ud->test_index]
@@ -77,17 +77,17 @@ struct
 
 const char *state_text[] = {
 #define STATE_CONNECTED    0
-		"Connected",
+        "Connected",
 #define STATE_TEST_ID_SENT 1
-		"ID sent",
+        "ID sent",
 #define STATE_MSG_SENT     2
-		"Message sent to server",
+        "Message sent to server",
 #define STATE_GOT_MESSAGE  3
-		"Client's message received",
+        "Client's message received",
 #define STATE_GOT_ANSWER   4
-		"Answer received from server",
+        "Answer received from server",
 #define STATE_ANSWER_SENT  5
-		"Answer sent to client"
+        "Answer sent to client"
 };
 
 /** \brief user-data record that will be attached to connection->user_data on server side of test
@@ -158,7 +158,7 @@ int main(void)
     test_message_len = strlen(test_message);
 
     for(i = 0; i < ID_STACK_MAX; ++i ) /* clearing */
-    	id_stack[i].client_index = -1;
+        id_stack[i].client_index = -1;
 
     /* *********************************************************** */
     /* *********************************************************** */
@@ -273,11 +273,12 @@ int main(void)
 
     while ( (time(NULL) - start_time < 5) || tcp_pool->used_slots > 0 || udp_pool->used_slots > 0 )
     {
-    	if (time(NULL) - last_event_time > 5 )
-    	{
-    	    ap_log_debug_log("! Finishing: last event was long ago. tcp slots used: %d, udp slots: %d\n", tcp_pool->used_slots, udp_pool->used_slots);
-    	    break;
-    	}
+        if (time(NULL) - last_event_time > 5 )
+        {
+            ap_log_debug_log("! Finishing: last event was long ago. tcp slots used: %d, udp slots: %d\n", tcp_pool->used_slots, udp_pool->used_slots);
+
+            break;
+        }
 
         usleep(10000);
 
@@ -293,16 +294,16 @@ int main(void)
             ud = conn->user_data;
 
             if( ! (bit_is_set(conn->state, AP_NET_ST_CONNECTED)) || ud->client_id != -1 )
-            	continue;
+                continue;
 
             for( n = 0; n < ID_STACK_MAX; ++n )
             {
-            	if( id_stack[n].is_tcp && id_stack[n].port == conn->remote.addr4.sin_port )
-            		break;
+                if( id_stack[n].is_tcp && id_stack[n].port == conn->remote.addr4.sin_port )
+                    break;
             }
 
             if ( n == ID_STACK_MAX ) /* not in stack, skipping */
-            	continue;
+                continue;
 
             ud->test_index = id_stack[n].test_index;
             ud->test_type  = id_stack[n].test_type;
@@ -313,7 +314,7 @@ int main(void)
         }
 
         if ( tcp_pool->poller->events_count )
-        	last_event_time = time(NULL);
+            last_event_time = time(NULL);
 
 #ifdef TEST_UDP
         if ( ! ap_net_conn_pool_poll(udp_pool) )
@@ -324,20 +325,20 @@ int main(void)
 
         for (i = 0; i < udp_pool->max_connections; ++i ) /* checking for unassigned Ids */
         {
-        	conn = &udp_pool->conns[i];
+            conn = &udp_pool->conns[i];
             ud = conn->user_data;
 
             if( ! (bit_is_set(conn->state, AP_NET_ST_CONNECTED)) || ud->client_id != -1 )
-            	continue;
+                continue;
 
             for( n = 0; n < ID_STACK_MAX; ++n )
             {
-            	if ( ! id_stack[n].is_tcp && id_stack[n].port == conn->remote.addr4.sin_port )
-            		break;
+                if ( ! id_stack[n].is_tcp && id_stack[n].port == conn->remote.addr4.sin_port )
+                    break;
             }
 
             if ( n == ID_STACK_MAX ) /* not in stack, skipping */
-            	continue;
+                continue;
 
             ud->test_index = id_stack[n].test_index;
             ud->test_type  = id_stack[n].test_type;
@@ -348,7 +349,7 @@ int main(void)
         }
 
         if ( udp_pool->poller->events_count )
-        	last_event_time = time(NULL);
+            last_event_time = time(NULL);
 #endif
     } /* while ( has activity ) */
 
@@ -373,46 +374,51 @@ int main(void)
     }
 
     for( n = i = 0; i < ID_STACK_MAX; ++i)
-    	if ( id_stack[i].client_index != -1 && id_stack[i].test_type != '-' )
-    	{
+        if ( id_stack[i].client_index != -1 && id_stack[i].test_type != '-' )
+        {
             ++n;
             ap_log_debug_log("%02d) Client #%d %s test index: %d, '%c'\n", n, id_stack[i].client_index, id_stack[i].is_tcp ? "TCP" : "UDP", id_stack[i].test_index, id_stack[i].test_type);
-    	}
+        }
 
     if(n)
-    	ap_log_debug_log("! ERROR: %d id packets still in stack\n", n);
+        ap_log_debug_log("! ERROR: %d id packets still in stack\n", n);
 
     if ( tcp_pool->used_slots > max_clients )
     {
-    	ap_log_debug_log ("TCP pool stale connections:\n");
+        ap_log_debug_log ("TCP pool stale connections:\n");
 
         for (i = 0; i < tcp_pool->max_connections; ++i)
         {
-        	if ( ! (tcp_pool->conns[i].state & AP_NET_ST_CONNECTED) )
-        		continue;
+            if ( ! (tcp_pool->conns[i].state & AP_NET_ST_CONNECTED) )
+                continue;
 
-        	conn = &tcp_pool->conns[i];
-        	ud = conn->user_data;
+            conn = &tcp_pool->conns[i];
+            ud = conn->user_data;
 
-        	if ( ud->is_control )
-        		continue;
+            if ( ud->is_control )
+                continue;
 
-        	ap_log_debug_log("%d) Client %d, expire in: %ldms, State: ", conn->idx, ud->client_id, ap_utils_timespec_elapsed(NULL, &conn->expire, NULL));
+            ap_log_debug_log("%d) Client %d, expire in: %ldms, State: ", conn->idx, ud->client_id, ap_utils_timespec_elapsed(NULL, &conn->expire, NULL));
 
-        	if ( bit_is_set(conn->state, AP_NET_ST_BUSY) )
-        		ap_log_debug_log(" Busy,");
-        	if ( bit_is_set(conn->state, AP_NET_ST_DISCONNECTION) )
-        		ap_log_debug_log(" Disc,");
-        	if ( bit_is_set(conn->state, AP_NET_ST_ERROR) )
-        		ap_log_debug_log(" Error,");
-        	if ( bit_is_set(conn->state, AP_NET_ST_EXPIRED) )
-        		ap_log_debug_log(" Expired,");
-        	if ( bit_is_set(conn->state, AP_NET_ST_IN) )
-        		ap_log_debug_log(" DataIn,");
-        	if ( bit_is_set(conn->state, AP_NET_ST_OUT) )
-        		ap_log_debug_log(" DataOut,");
+            if ( bit_is_set(conn->state, AP_NET_ST_BUSY) )
+                ap_log_debug_log(" Busy,");
 
-        	ap_log_debug_log(" buf p: %d, f: %d, s: %d, Test #%d '%c'\n", conn->bufpos, conn->buffill, conn->bufsize, ud->test_index, ud->test_type);
+            if ( bit_is_set(conn->state, AP_NET_ST_DISCONNECTION) )
+                ap_log_debug_log(" Disc,");
+
+            if ( bit_is_set(conn->state, AP_NET_ST_ERROR) )
+                ap_log_debug_log(" Error,");
+
+            if ( bit_is_set(conn->state, AP_NET_ST_EXPIRED) )
+                ap_log_debug_log(" Expired,");
+
+            if ( bit_is_set(conn->state, AP_NET_ST_IN) )
+                ap_log_debug_log(" DataIn,");
+
+            if ( bit_is_set(conn->state, AP_NET_ST_OUT) )
+                ap_log_debug_log(" DataOut,");
+
+            ap_log_debug_log(" buf p: %d, f: %d, s: %d, Test #%d '%c'\n", conn->bufpos, conn->buffill, conn->bufsize, ud->test_index, ud->test_type);
         }
     }
 
@@ -509,16 +515,18 @@ int server_callback(struct ap_net_connection_t *conn, int signal_type)
             ud->client_id = -1;
             ud->test_index = -1;
             ud->state = -1;
+
             break;
 
         /* ======================================================== */
         case AP_NET_SIGNAL_CONN_DESTROYING:
             free(conn->user_data);
+
             break;
 
         /* ======================================================== */
         case AP_NET_SIGNAL_CONN_CONNECTED:
-        	/* UDP pool receives this. as it does reverse connect() on incoming data */
+            /* UDP pool receives this. as it does reverse connect() on incoming data */
             break;
 
         /* ======================================================== */
@@ -528,27 +536,28 @@ int server_callback(struct ap_net_connection_t *conn, int signal_type)
             ud->test_type = '\0';
             ud->client_id = -1;
             ud->test_index = -1;
+
             break;
 
         /* ======================================================== */
         case AP_NET_SIGNAL_CONN_CLOSING:
-        	for ( i = 0; i < max_clients; ++i ) /* finding is this a control channel? */
+            for ( i = 0; i < max_clients; ++i ) /* finding is this a control channel? */
                 if ( conn == control_conns[i] ) /* yep */
                 {
-                	control_conns[i] = NULL;
-                	return 1;
+                    control_conns[i] = NULL;
+                    return 1;
                 }
 
-        	if( ud->client_id == -1 )
-        	{
-        		ap_log_debug_log("* !ERROR: Conn %d close (%s) with unset ID. Buf fill %d, pos: %d\n",
-                		conn->idx, ap_error_get_string(), conn->buffill, conn->bufpos);
-        		return 1;
-        	}
+            if( ud->client_id == -1 )
+            {
+                ap_log_debug_log("* !ERROR: Conn %d close (%s) with unset ID. Buf fill %d, pos: %d\n",
+                        conn->idx, ap_error_get_string(), conn->buffill, conn->bufpos);
+                return 1;
+            }
 
-        	/* first trying to recover the last data and check validity */
+            /* first trying to recover the last data and check validity */
             if ( ud->test_type == 's' && ud->state != STATE_GOT_MESSAGE && conn->buffill == test_message_len )
-            	ud->state = STATE_GOT_MESSAGE;
+                ud->state = STATE_GOT_MESSAGE;
 
             if ( (ud->test_type == '+' && ud->state != STATE_ANSWER_SENT)
                     || (ud->test_type == '-' && ud->state != STATE_CONNECTED)
@@ -557,11 +566,11 @@ int server_callback(struct ap_net_connection_t *conn, int signal_type)
                 )
             {
                 ap_log_debug_log("* !ERROR: Conn %d close (%s) with invalid state '%s'. client %d test #%d '%c'. Buf fill %d, pos: %d\n",
-                		conn->idx, ap_error_get_string(), state_text[ud->state], ud->client_id, ud->test_index, ud->test_type, conn->buffill, conn->bufpos);
+                        conn->idx, ap_error_get_string(), state_text[ud->state], ud->client_id, ud->test_index, ud->test_type, conn->buffill, conn->bufpos);
 
-               	tests[POOL_IS_TCP(conn->parent)][ud->client_id].results[ud->test_index] = '-';
-               	tests[POOL_IS_TCP(conn->parent)][ud->client_id].done++;
-               	tests[POOL_IS_TCP(conn->parent)][ud->client_id].bad++;
+                tests[POOL_IS_TCP(conn->parent)][ud->client_id].results[ud->test_index] = '-';
+                tests[POOL_IS_TCP(conn->parent)][ud->client_id].done++;
+                tests[POOL_IS_TCP(conn->parent)][ud->client_id].bad++;
 
                 break;
             }
@@ -577,65 +586,72 @@ int server_callback(struct ap_net_connection_t *conn, int signal_type)
         /* ======================================================== */
         case AP_NET_SIGNAL_CONN_MOVED_FROM:
         case AP_NET_SIGNAL_CONN_MOVED_TO:
-        	ap_log_debug_log("\nMOVED???? Unimplemented.\n");
-        	exit(1);
+            ap_log_debug_log("\nMOVED???? Unimplemented.\n");
+
+            exit(1);
+
             break;
 
         /* ======================================================== */
         case AP_NET_SIGNAL_CONN_DATA_IN:
         case AP_NET_SIGNAL_CONN_DATA_LEFT:
-        	for ( i = 0; i < max_clients; ++i ) /* finding is this a message from control channel? */
+            for ( i = 0; i < max_clients; ++i ) /* finding is this a message from control channel? */
             {
                 if ( conn == control_conns[i] ) /* yep */
                 {
-                	/* buffer can contain many IDs, so we looping through them and pushing to the id stack for retrieval after poll call end */
-                	for(; (conn->buffill - conn->bufpos) >= sizeof(binary_id_packet); conn->bufpos += sizeof(binary_id_packet))
-                	{
+                    /* buffer can contain many IDs, so we looping through them and pushing to the id stack for retrieval after poll call end */
+                    for(; (conn->buffill - conn->bufpos) >= sizeof(binary_id_packet); conn->bufpos += sizeof(binary_id_packet))
+                    {
                         id = (binary_id_packet *)(conn->buf + conn->bufpos);
 
                         if( 0 != strncmp((const char *)id->marker, id_packet_marker, strlen(id_packet_marker)) ) /* signature check */
                         {
                             ap_log_debug_log("* !ERROR: non-ID packet on control connection, client #%d/%d\n", ud->client_id, i);
                             ap_log_mem_dump_to_fd(fileno(stdout), id, conn->buffill - conn->bufpos);
+
                             return 1;
                         }
 
                         for( i = 0; i < ID_STACK_MAX; ++i )
-                        	if( id_stack[i].client_index == -1 ) /* pushing to stack and do the next loop on received data */
-                        	{
-                        		memcpy(&id_stack[i], id, sizeof(binary_id_packet));
-                        		break;
-                        	}
+                            if( id_stack[i].client_index == -1 ) /* pushing to stack and do the next loop on received data */
+                            {
+                                memcpy(&id_stack[i], id, sizeof(binary_id_packet));
+
+                                break;
+                            }
 
                         if( i == ID_STACK_MAX )
                         {
-                        	ap_log_debug_log("! ERROR: ID stack is full!\n");
-                        	exit(1);
-                        }
-                	}
+                            ap_log_debug_log("! ERROR: ID stack is full!\n");
 
-                	return 1;
+                            exit(1);
+                        }
+                    }
+
+                    return 1;
                 }
             } /* end of control connection message processing */
 
             /* check if it is new control connection */
-        	n = strlen(control_conn_marker);
+            n = strlen(control_conn_marker);
+
             if ( conn->bufpos == 0 && 0 == strncmp(conn->buf, control_conn_marker, n))
             {
-            	for ( i = 0; i < max_clients; ++i )
-            		if (control_conns[i] == NULL )
-            		{
-            			control_conns[i] = conn;
-            			break;
-            		}
+                for ( i = 0; i < max_clients; ++i )
+                    if (control_conns[i] == NULL )
+                    {
+                        control_conns[i] = conn;
+                        break;
+                    }
 
-            	ud->client_id = conn->buf[n] - '0';
-            	ud->is_control = 1;
-            	ap_log_debug_log("d#%s/%d\n", conn->buf + n, i);
-            	ap_utils_timespec_clear(&conn->expire); /* no expiration on control */
+                ud->client_id = conn->buf[n] - '0';
+                ud->is_control = 1;
+                ap_log_debug_log("d#%s/%d\n", conn->buf + n, i);
+                ap_utils_timespec_clear(&conn->expire); /* no expiration on control */
 
-            	conn->bufpos += n + 2; /* there can be already some ID packets in buffer, so we move position instead of resetting the buffer */
-            	return 1;
+                conn->bufpos += n + 2; /* there can be already some ID packets in buffer, so we move position instead of resetting the buffer */
+
+                return 1;
             }
 
             /* end of control connections section
@@ -643,41 +659,43 @@ int server_callback(struct ap_net_connection_t *conn, int signal_type)
              * begin of ordinary connection section
              */
 
-        	/*ap_log_debug_log("%c", bit)is_set(conn->parent->flags, AP_NET_POOL_FLAGS_TCP) ? 'T' : 'U');*/
+            /*ap_log_debug_log("%c", bit)is_set(conn->parent->flags, AP_NET_POOL_FLAGS_TCP) ? 'T' : 'U');*/
 
             if ( ud->client_id == -1 )
-            	return 1;
+                return 1;
 
-            if ( ! ud->state == STATE_GOT_MESSAGE
-            		&& ((ud->test_type == '+' && ud->state != STATE_CONNECTED)
-            				|| ud->test_type == '-'
-            				|| ud->test_type == 'c'
-            				|| (ud->test_type == 's' && ud->state != STATE_CONNECTED)
-            		))
+            if ( ! ( ud->state == STATE_GOT_MESSAGE )
+                    && ((ud->test_type == '+' && ud->state != STATE_CONNECTED)
+                            || ud->test_type == '-'
+                            || ud->test_type == 'c'
+                            || (ud->test_type == 's' && ud->state != STATE_CONNECTED)
+                    ))
             {
                 ap_log_debug_log("* !ERROR: Incoming data with invalid state '%s' on client %d test #%d-'%c'\n", state_text[ud->state], client_index, ud->test_index, ud->test_type);
 
-               	tests[POOL_IS_TCP(conn->parent)][ud->client_id].results[ud->test_index] = '-';
-               	tests[POOL_IS_TCP(conn->parent)][ud->client_id].done++;
-               	tests[POOL_IS_TCP(conn->parent)][ud->client_id].bad++;
+                tests[POOL_IS_TCP(conn->parent)][ud->client_id].results[ud->test_index] = '-';
+                tests[POOL_IS_TCP(conn->parent)][ud->client_id].done++;
+                tests[POOL_IS_TCP(conn->parent)][ud->client_id].bad++;
             }
 
             ud->state = STATE_GOT_MESSAGE;
 
             if ( ud->test_type != '+' )
             {
-            	conn->buffill = 0; /* discarding data */
+                conn->buffill = 0; /* discarding data */
+
                 break;
             }
 
             ap_net_conn_pool_send(conn->parent, conn->idx, (char *)test_message, test_message_len);
             ud->state = STATE_ANSWER_SENT;
             ap_net_conn_pool_close_connection(conn->parent, conn->idx);
+
             break;
 
         /* ======================================================== */
         case AP_NET_SIGNAL_CONN_CAN_SEND:
-        	/* !NOTE: this is for async operations. unused now */
+            /* !NOTE: this is for async operations. unused now */
             if ( ud->test_type != '+' || ud->state != STATE_GOT_MESSAGE )
                 break;
 
@@ -690,12 +708,12 @@ int server_callback(struct ap_net_connection_t *conn, int signal_type)
 
         /* ======================================================== */
         case AP_NET_SIGNAL_CONN_TIMED_OUT:
-        	/*ap_log_debug_log("* got %s conn #%d timeout\n", bit_is_set(conn->parent->flags, AP_NET_POOL_FLAGS_TCP) ? "TCP" : "UDP", conn->idx);*/
+            /*ap_log_debug_log("* got %s conn #%d timeout\n", bit_is_set(conn->parent->flags, AP_NET_POOL_FLAGS_TCP) ? "TCP" : "UDP", conn->idx);*/
             if( (ud->test_type == '+' && ud->state != STATE_ANSWER_SENT && conn->buffill < test_message_len)
-            		|| (ud->test_type == 's' && ud->state != STATE_GOT_MESSAGE))
+                    || (ud->test_type == 's' && ud->state != STATE_GOT_MESSAGE))
             {
-            	if ( ud->client_id != -1 )
-            		ap_log_debug_log("* !ERROR: Client %d: test #%d '%c' timed out in state '%s'. fill: %d\n", ud->client_id, ud->test_index, ud->test_type, state_text[ud->state], conn->buffill);
+                if ( ud->client_id != -1 )
+                    ap_log_debug_log("* !ERROR: Client %d: test #%d '%c' timed out in state '%s'. fill: %d\n", ud->client_id, ud->test_index, ud->test_type, state_text[ud->state], conn->buffill);
             }
 
             break;
@@ -703,6 +721,7 @@ int server_callback(struct ap_net_connection_t *conn, int signal_type)
         /* ======================================================== */
         default:
             ap_log_debug_log("* !ERROR: Server callback: unknown signal: %d\n", signal_type);
+
             exit(1);
     }
 
@@ -723,6 +742,7 @@ int client_callback(struct ap_net_connection_t *conn, int signal_type)
             if( conn->user_data == NULL )
             {
                 conn->user_data = malloc(sizeof(client_userdata));
+
                 if ( conn->user_data == NULL )
                 {
                     ap_log_debug_log("\t- !ERROR: Client %d oom\n", client_index);
@@ -750,7 +770,8 @@ int client_callback(struct ap_net_connection_t *conn, int signal_type)
 
         /* ======================================================== */
         case AP_NET_SIGNAL_CONN_CLOSING:
-        	return 1;
+            return 1;
+ 
             if ( (! bit_is_set(conn->state, AP_NET_ST_EXPIRED)) && ( /* problems with wrong state also reported on timeout signal, so we don't do it here */
             		(ud->test_type == '+' && ud->state != STATE_GOT_ANSWER)
                     || (ud->test_type == '-' && ud->state != STATE_TEST_ID_SENT)
@@ -759,9 +780,12 @@ int client_callback(struct ap_net_connection_t *conn, int signal_type)
                 ))
             {
                 ap_log_debug_log("\t- !ERROR: Client %d: test #%d '%c' failed in state '%s'\n", client_index, ud->test_index, ud->test_type, state_text[ud->state]);
+
                 exit(1);
             }
+
             ud->test_type = '\0';
+
             break;
 
         /* ======================================================== */
@@ -787,7 +811,7 @@ int client_callback(struct ap_net_connection_t *conn, int signal_type)
 
         /* ======================================================== */
         case AP_NET_SIGNAL_CONN_CAN_SEND:
-        	/* ! NOTE: we do not do async sends now, so this block is not functional */
+            /* ! NOTE: we do not do async sends now, so this block is not functional */
             if ( ud->state == STATE_TEST_ID_SENT )
             {
                 if ( ud->test_type == 'c' ) /* let it expire */
@@ -800,27 +824,31 @@ int client_callback(struct ap_net_connection_t *conn, int signal_type)
                 }
 
             }
+
             else if ( ud->state == STATE_MSG_SENT )
             {
 
             }
+
             else if ( ud->state == STATE_GOT_ANSWER )
             {
                 ap_net_conn_pool_close_connection(conn->parent, conn->idx);
             }
+
             break;
 
         /* ======================================================== */
         case AP_NET_SIGNAL_CONN_TIMED_OUT:
-        	/*
+            /*
             if( ud->test_type == '+' )
                 ap_log_debug_log("\t- !ERROR: Client %d: test #%d '%c' timed out in state '%s'\n", client_index, ud->test_index, ud->test_type, state_text[ud->state]);
-			*/
+            */
             break;
 
         /* ======================================================== */
         default:
             ap_log_debug_log("\t- !ERROR: Client %d unknown signal: %d\n", client_index, signal_type);
+
             exit(1);
     }
 
@@ -852,6 +880,7 @@ void go_client(void)
             || ! ap_net_conn_pool_poller_create(tcp_pool))
     {
         ap_log_debug_log("\t- !ERROR: Client %d tcp_pool create: %s\n", client_index, ap_error_get_string());
+
         exit(1);
     }
 
@@ -860,6 +889,7 @@ void go_client(void)
             || ! ap_net_conn_pool_poller_create(udp_pool))
     {
         ap_log_debug_log("\t- !ERROR: Client %d udp_pool create: %s\n", client_index, ap_error_get_string());
+
         exit(1);
     }
 
@@ -869,18 +899,20 @@ void go_client(void)
     if ( NULL == (control_conn = ap_net_conn_pool_connect_straddr(tcp_pool, 0, localhost_str, AF_INET, tcp_port, 0)))
     {
         ap_log_debug_log("\t- !ERROR: Client %d debug conn create: %s\n", client_index, ap_error_get_string());
+
         exit(1);
     }
 
     ud = control_conn->user_data;
 
-	n = 1 + sprintf(ud->send_buf, "%s%d", control_conn_marker, client_index);
+    n = 1 + sprintf(ud->send_buf, "%s%d", control_conn_marker, client_index);
 
     if ( n != ap_net_conn_pool_send(tcp_pool, 0, (void *)(ud->send_buf), n) )
-	{
+    {
         ap_log_debug_log("\t- !ERROR: Client %d debug conn marker send: %s\n", client_index, ap_error_get_string());
+
         exit(1);
-	}
+    }
 
     /*ap_log_debug_log("\t- Client %d debug conn created\n", client_index);*/
     sleep(1);
@@ -893,19 +925,21 @@ void go_client(void)
 
     start_time = time(NULL);
 
-   	/* -------------------------------------------------------------------- */
+    /* -------------------------------------------------------------------- */
     while ( tests_tcp[tcp_test_idx] != '\0' || tests_udp[udp_test_idx] != '\0' )
     {
-    	if ( time(NULL) - start_time >= CLIENT_MAX_LIFETIME )
-    	{
+        if ( time(NULL) - start_time >= CLIENT_MAX_LIFETIME )
+        {
             ap_log_debug_log("\n\n\t!ERROR: Client #%d: Max lifetime exceeded. Tests done: TCP: %d, UDP: %d\n",
-            		client_index, tcp_test_count - tcp_test_idx, udp_test_count - udp_test_idx);
+                    client_index, tcp_test_count - tcp_test_idx, udp_test_count - udp_test_idx);
+
             exit(1);
-    	}
+        }
 
         if ( ! ap_net_conn_pool_poll(tcp_pool) )
         {
             ap_log_debug_log("\t- !ERROR: Client #%d: tcp_pool: %s\n", client_index, ap_error_get_string());
+
             exit(1);
         }
 
@@ -913,18 +947,20 @@ void go_client(void)
         if ( ! ap_net_conn_pool_poll(udp_pool) )
         {
             ap_log_debug_log("\t- !ERROR: Client #%d: udp_pool: %s\n", client_index, ap_error_get_string());
+
             exit(1);
         }
 #endif
 
         if ( tcp_pool->used_slots == tcp_pool->max_connections
 #ifdef TEST_UDP
-        		&& udp_pool->used_slots == udp_pool->max_connections
+                && udp_pool->used_slots == udp_pool->max_connections
 #endif
-        		)
+                )
         {
             usleep(5000);
-        	continue;
+
+            continue;
         }
 
         if ( tests_tcp[tcp_test_idx] != '\0' && tcp_pool->used_slots < tcp_pool->max_connections ) /* adding new tcp connection */
@@ -948,8 +984,8 @@ void go_client(void)
             id_packet->client_index = client_index;
 
             /*if(client_index == 0)
-            	ap_log_debug_log("\t Client %d test %d tcp port: %d\n", client_index, tcp_test_idx, id_packet->port);
-            	*/
+                ap_log_debug_log("\t Client %d test %d tcp port: %d\n", client_index, tcp_test_idx, id_packet->port);
+                */
 
             if ( -1 == ap_net_conn_pool_send(tcp_pool, 0, id_packet, sizeof(binary_id_packet)))
             {
@@ -962,12 +998,14 @@ void go_client(void)
 
             if(ud->test_type == '+' || ud->test_type == 's')
             {
-            	usleep(100000);
-            	if ( -1 == ap_net_conn_pool_send(conn->parent, conn->idx, (char *)test_message, test_message_len))
-            	{
+                usleep(100000);
+
+                if ( -1 == ap_net_conn_pool_send(conn->parent, conn->idx, (char *)test_message, test_message_len))
+                {
                     ap_log_debug_log("\t- !ERROR: Client %d test %d message send: %s\n", client_index, tcp_test_idx, ap_error_get_string());
                     exit(1);
-            	}
+                }
+
                 ud->state = STATE_MSG_SENT;
             }
         } /* if ( tcp_pool->used_slots < tcp_pool->max_connections ) */
@@ -1005,12 +1043,14 @@ void go_client(void)
 
             if(ud->test_type == '+' || ud->test_type == 's')
             {
-            	usleep(100000);
+                usleep(100000);
+
                 if ( -1 == ap_net_conn_pool_send(conn->parent, conn->idx, (char *)test_message, test_message_len))
-            	{
+                {
                     ap_log_debug_log("\t- !ERROR: Client %d test %d message send: %s\n", client_index, udp_test_idx, ap_error_get_string());
                     exit(1);
-            	}
+                }
+
                 ud->state = STATE_MSG_SENT;
             }
         } /* if ( udp_pool->used_slots < udp_pool->max_connections ) */
@@ -1018,5 +1058,6 @@ void go_client(void)
     } /* while ( time(NULL) - start_time < CLIENT_MAX_LIFETIME && (tests_tcp[tcp_test_idx] != '\0' || tests_udp[udp_test_idx] != '\0'))  ... */
 
     ap_log_debug_log("\n\n\t---- Client #%d done\n\n", client_index);
+
     exit(0);
 }

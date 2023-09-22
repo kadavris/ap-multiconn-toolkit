@@ -24,33 +24,38 @@ static struct ap_net_connection_t *ap_net_conn_pool_do_connect(struct ap_net_con
     {
         ap_error_set_detailed(_func_name, AP_ERRNO_SYSTEM, "socket()");
         ap_net_connection_unlock(conn);
+
         return NULL;
     }
 
     if ( ! bit_is_set(pool->flags, AP_NET_POOL_FLAGS_TCP) ) /* do manual bind() for UDP */
     {
-		memset(&conn->local, 0, sizeof(conn->local));
-    	conn->local.af = conn->remote.af;
+        memset(&conn->local, 0, sizeof(conn->local));
+        conn->local.af = conn->remote.af;
 
         if ( -1 == bind(conn->fd, (struct sockaddr *)&conn->local, sizeof(conn->local)))
         {
-        	ap_error_set_detailed(_func_name, AP_ERRNO_SYSTEM, "bind()");
+            ap_error_set_detailed(_func_name, AP_ERRNO_SYSTEM, "bind()");
             ap_net_connection_unlock(conn);
-        	return NULL;
+
+            return NULL;
         }
     }
 
     if ( 0 != connect(conn->fd, (struct sockaddr *)&conn->remote, sizeof(conn->remote)) )
     {
         ap_error_set_detailed(_func_name, AP_ERRNO_SYSTEM, "connect()");
-    	goto lblerror;
+
+        goto lblerror;
     }
 
     slen = sizeof(conn->local);
+
     if ( 0 != getsockname(conn->fd, (struct sockaddr *)&conn->local, &slen)) /* getting our side addr and port */
     {
         ap_error_set_detailed(_func_name, AP_ERRNO_SYSTEM, "getsockname()");
-    	goto lblerror;
+
+        goto lblerror;
     }
 
     fcntl(conn->fd, F_SETFL, fcntl(conn->fd, F_GETFL) | O_NONBLOCK);
@@ -58,15 +63,15 @@ static struct ap_net_connection_t *ap_net_conn_pool_do_connect(struct ap_net_con
     conn->state = AP_NET_ST_CONNECTED;
 
     if ( conn->parent->poller != NULL && ! ap_net_conn_pool_poller_add_conn(conn->parent, conn->idx) )
-    	goto lblerror;
+        goto lblerror;
 
     if( ! bit_is_set(conn->flags, AP_NET_CONN_FLAGS_UDP_IN) )
     {
-    	if ( pool->callback_func != NULL )
-    		pool->callback_func(conn, AP_NET_SIGNAL_CONN_CONNECTED);
+        if ( pool->callback_func != NULL )
+            pool->callback_func(conn, AP_NET_SIGNAL_CONN_CONNECTED);
 
-    	if (ap_log_debug_level)
-    		ap_log_debug_log("* Outbound connection #%d initiated\n", conn->idx);
+        if (ap_log_debug_level)
+            ap_log_debug_log("* Outbound connection #%d initiated\n", conn->idx);
     }
 
     ap_net_connection_unlock(conn);
@@ -91,7 +96,7 @@ static int sanity_check(struct ap_net_conn_pool_t *pool, int port, int expire_in
     ap_error_clear();
 
     if(expire_in_ms < 0)
-    	return -1;
+        return -1;
 
     if (pool->used_slots == pool->max_connections)
     {
@@ -117,12 +122,12 @@ static int sanity_check(struct ap_net_conn_pool_t *pool, int port, int expire_in
     ap_net_conn_pool_connection_pre_connect(pool, conn_idx, flags);
 
     if ( ! ap_net_connection_lock(conn) )
-    	return -1;
+        return -1;
 
     if ( expire_in_ms )
-    	ap_utils_timespec_set(&conn->expire, AP_UTILS_TIME_SET_FROM_NOW, expire_in_ms);
+        ap_utils_timespec_set(&conn->expire, AP_UTILS_TIME_SET_FROM_NOW, expire_in_ms);
     else
-    	ap_utils_timespec_clear(&conn->expire);
+        ap_utils_timespec_clear(&conn->expire);
 
     return conn_idx;
 }
@@ -152,22 +157,24 @@ struct ap_net_connection_t *ap_net_conn_pool_connect_straddr(struct ap_net_conn_
     conn_idx = sanity_check(pool, port, expire_in_ms, flags);
 
     if (conn_idx == -1)
-    	return NULL;
+        return NULL;
 
     conn = &pool->conns[conn_idx];
 
     if ( af == AF_INET6 )
     {
-    	if( -1 == inet_pton(AF_INET6, address_str, &conn->remote.addr6.sin6_addr) )
-    	{
-    		ap_error_set_custom(_func_name, "bad IPv6: %s", address_str);
+        if( -1 == inet_pton(AF_INET6, address_str, &conn->remote.addr6.sin6_addr) )
+        {
+            ap_error_set_custom(_func_name, "bad IPv6: %s", address_str);
             ap_net_connection_unlock(conn);
-            return NULL;
-    	}
 
-		conn->remote.addr6.sin6_family = AF_INET6;
-    	conn->remote.addr6.sin6_port = htons(port);
+            return NULL;
+        }
+
+        conn->remote.addr6.sin6_family = AF_INET6;
+        conn->remote.addr6.sin6_port = htons(port);
     }
+
     else if ( af == AF_INET )
     {
         if ( ! inet_aton(address_str, &conn->remote.addr4.sin_addr) )
@@ -177,27 +184,31 @@ struct ap_net_connection_t *ap_net_conn_pool_connect_straddr(struct ap_net_conn_
              return NULL;
         }
 
-    	conn->remote.addr4.sin_family = AF_INET;
+        conn->remote.addr4.sin_family = AF_INET;
         conn->remote.addr4.sin_port = htons(port);
     }
+
     else /* trying to detect */
     {
-    	if( -1 != inet_pton(AF_INET6, address_str, &conn->remote.addr6.sin6_addr) )
-    	{
-    		conn->remote.addr6.sin6_family = AF_INET6;
-        	conn->remote.addr6.sin6_port = htons(port);
-    	}
-    	else if( -1 != inet_pton(AF_INET, address_str, &conn->remote.addr4.sin_addr) )
-    	{
-    		conn->remote.addr4.sin_family = AF_INET;
+        if( -1 != inet_pton(AF_INET6, address_str, &conn->remote.addr6.sin6_addr) )
+        {
+            conn->remote.addr6.sin6_family = AF_INET6;
+            conn->remote.addr6.sin6_port = htons(port);
+        }
+
+        else if( -1 != inet_pton(AF_INET, address_str, &conn->remote.addr4.sin_addr) )
+        {
+            conn->remote.addr4.sin_family = AF_INET;
             conn->remote.addr4.sin_port = htons(port);
-    	}
-    	else
-    	{
-    		ap_error_set_custom(_func_name, "can't autodetect address type: %s", address_str);
+        }
+
+        else
+        {
+            ap_error_set_custom(_func_name, "can't autodetect address type: %s", address_str);
             ap_net_connection_unlock(conn);
+
             return NULL;
-    	}
+        }
     }
 
     return ap_net_conn_pool_do_connect(pool, conn_idx);
@@ -225,11 +236,11 @@ struct ap_net_connection_t *ap_net_conn_pool_connect_ip4(struct ap_net_conn_pool
     conn_idx = sanity_check(pool, port, expire_in_ms, flags);
 
     if (conn_idx == -1)
-    	return NULL;
+        return NULL;
 
     conn = &pool->conns[conn_idx];
 
-	conn->remote.addr4.sin_family = AF_INET;
+    conn->remote.addr4.sin_family = AF_INET;
     conn->remote.addr4.sin_port = htons(port);
     conn->remote.addr4.sin_addr.s_addr = htonl(address4);
 
@@ -258,12 +269,12 @@ struct ap_net_connection_t *ap_net_conn_pool_connect_ip6(struct ap_net_conn_pool
     conn_idx = sanity_check(pool, port, expire_in_ms, flags);
 
     if (conn_idx == -1)
-    	return NULL;
+        return NULL;
 
     conn = &pool->conns[conn_idx];
 
     /*TODO: STUB. should check if it is right method: */
-	conn->remote.addr6.sin6_family = AF_INET6;
+    conn->remote.addr6.sin6_family = AF_INET6;
     conn->remote.addr6.sin6_port = htons(port);
     memcpy(&conn->remote.addr6.sin6_addr, address6, sizeof(struct in6_addr));
 

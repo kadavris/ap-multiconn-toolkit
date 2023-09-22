@@ -32,11 +32,11 @@ void ap_net_conn_pool_connection_pre_connect(struct ap_net_conn_pool_t *pool, in
 
     if ( ap_utils_timespec_is_set( &pool->max_conn_ttl) )
     {
-    	ap_utils_timespec_add(&conn->created_time, &pool->max_conn_ttl, &conn->expire);
+        ap_utils_timespec_add(&conn->created_time, &pool->max_conn_ttl, &conn->expire);
     }
     else
     {
-    	ap_utils_timespec_clear( &conn->expire );
+        ap_utils_timespec_clear( &conn->expire );
     }
 
     conn->fd = -1;

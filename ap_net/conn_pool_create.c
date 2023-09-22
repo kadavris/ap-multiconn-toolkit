@@ -17,13 +17,13 @@ static const char *_func_name = "ap_net_conn_pool_create()";
  *
  * The flags are affect pool type and behaviour. The flags can be combined by binary | (OR)
  * AP_NET_POOL_FLAGS_TCP - set pool to TCP mode. Absence of this flags means that pool created in UDP mode. No mixing on server! Probably on clients too.
- * 		Use different pools to provide different kinds of connections. This is only to simplify a set of functions to manage pool and individual connections.
+ *     Use different pools to provide different kinds of connections. This is only to simplify a set of functions to manage pool and individual connections.
  * AP_NET_POOL_FLAGS_IPV6 - set pool to IPv6 mode. Absence of this flag means IPv4 mode. No mixing on server! Client's pools are OK
  * AP_NET_POOL_FLAGS_ASYNC - trying to use fully asynchronous send/receive.
- * 		By default all connections sockets are set to non-blocking mode on creation. Polling for incoming data are asynchronous, but sending done with blocking flag.
- * 		Asynchronous mode turns on polling for 'can send' events on sockets and sends data via very smart function wrapped around non-blocking send.
- * 		See ap_net_conn_pool_send() for gory details.
- * 		As always, you can set by hand the blocking mode for each and other connection, but this will break poller and possible some other functions in unpredictable way.
+ *     By default all connections sockets are set to non-blocking mode on creation. Polling for incoming data are asynchronous, but sending done with blocking flag.
+ *     Asynchronous mode turns on polling for 'can send' events on sockets and sends data via very smart function wrapped around non-blocking send.
+ *     See ap_net_conn_pool_send() for gory details.
+ *     As always, you can set by hand the blocking mode for each and other connection, but this will break poller and possible some other functions in unpredictable way.
  *
  * Max connections is really a count of connection record in pool's array. This could be resized almost any time by calling ap_net_conn_pool_set_max_connections()
  *
@@ -45,25 +45,25 @@ static const char *_func_name = "ap_net_conn_pool_create()";
  * Callback function's coupled with ap_net_conn_pool_poll() main advantage is automatic handling of standard events like graceful and erroneous disconnections,
  * data arrival, registering new incoming connections is server mode and some changes to internal pool's structures such as moving connection from place to place
  * Current signals sent are:
- * 		AP_NET_SIGNAL_CONN_CREATED - Sent on each new connection structure create. This is happen on calling ap_net_conn_pool_set_max_connections() when new connections added
- * 			Useful to create and initialize connection's pointer to user-defined data connection->user_data
- *  	AP_NET_SIGNAL_CONN_DESTROYING - Called on connection's destruction.
- *  		1) also on ap_net_conn_pool_set_max_connections() when extra connections is removed
- *  		2) on pool's destruction
- *  	AP_NET_SIGNAL_CONN_CONNECTED - Called when new outgoing connection is ready to go. This is really for totally async feel.
- *  	AP_NET_SIGNAL_CONN_ACCEPTED - Called on new incoming connection is created and ready to be used.
- *  		This is special case. Callback function should return true if connection is allowed and false if it not desired.
- *  		In later case the connection is closed immediately and error is set to AP_ERRNO_ACCEPT_DENIED
- *  	AP_NET_SIGNAL_CONN_CLOSING - Called from ap_net_conn_pool_close_connection() _before_ the actual socket closing and structure data reset.
- *  		Let you do some last poking. Use carefully. Check connection->state for AP_NET_ST_ERROR, AP_NET_ST_CONNECTED, AP_NET_ST_EXPIRED, AP_NET_ST_DISCONNECTION
- *  		Look at ap_net.h for actual details on status bits
- *  	AP_NET_SIGNAL_CONN_MOVED_TO - Used in pair with AP_NET_SIGNAL_CONN_MOVED_FROM indicating the place the connection was copied/moved to
- *  	AP_NET_SIGNAL_CONN_MOVED_FROM - Used in pair with AP_NET_SIGNAL_CONN_MOVED_TO indicating the place the connection was copied/moved from
- *  	AP_NET_SIGNAL_CONN_DATA_IN - New data is available in receiving buffer
- *  	AP_NET_SIGNAL_CONN_CAN_SEND - Socket is ready for sending data. Used in asynchronous mode
- *  	AP_NET_SIGNAL_CONN_TIMED_OUT - Called on expiration event. Next signal will be AP_NET_SIGNAL_CONN_CLOSING
- *  	AP_NET_SIGNAL_CONN_DATA_LEFT - Funny companion to AP_NET_SIGNAL_CONN_DATA_IN. Called in poll cycle when no _new_ data was received,
- *  		but buffer still contain some unprocessed stuff. trigger is bufpos < buffill.
+ *     AP_NET_SIGNAL_CONN_CREATED - Sent on each new connection structure create. This is happen on calling ap_net_conn_pool_set_max_connections() when new connections added
+ *          Useful to create and initialize connection's pointer to user-defined data connection->user_data
+ *     AP_NET_SIGNAL_CONN_DESTROYING - Called on connection's destruction.
+ *         1) also on ap_net_conn_pool_set_max_connections() when extra connections is removed
+ *         2) on pool's destruction
+ *     AP_NET_SIGNAL_CONN_CONNECTED - Called when new outgoing connection is ready to go. This is really for totally async feel.
+ *     AP_NET_SIGNAL_CONN_ACCEPTED - Called on new incoming connection is created and ready to be used.
+ *         This is special case. Callback function should return true if connection is allowed and false if it not desired.
+ *         In later case the connection is closed immediately and error is set to AP_ERRNO_ACCEPT_DENIED
+ *     AP_NET_SIGNAL_CONN_CLOSING - Called from ap_net_conn_pool_close_connection() _before_ the actual socket closing and structure data reset.
+ *         Let you do some last poking. Use carefully. Check connection->state for AP_NET_ST_ERROR, AP_NET_ST_CONNECTED, AP_NET_ST_EXPIRED, AP_NET_ST_DISCONNECTION
+ *         Look at ap_net.h for actual details on status bits
+ *     AP_NET_SIGNAL_CONN_MOVED_TO - Used in pair with AP_NET_SIGNAL_CONN_MOVED_FROM indicating the place the connection was copied/moved to
+ *     AP_NET_SIGNAL_CONN_MOVED_FROM - Used in pair with AP_NET_SIGNAL_CONN_MOVED_TO indicating the place the connection was copied/moved from
+ *     AP_NET_SIGNAL_CONN_DATA_IN - New data is available in receiving buffer
+ *     AP_NET_SIGNAL_CONN_CAN_SEND - Socket is ready for sending data. Used in asynchronous mode
+ *     AP_NET_SIGNAL_CONN_TIMED_OUT - Called on expiration event. Next signal will be AP_NET_SIGNAL_CONN_CLOSING
+ *     AP_NET_SIGNAL_CONN_DATA_LEFT - Funny companion to AP_NET_SIGNAL_CONN_DATA_IN. Called in poll cycle when no _new_ data was received,
+ *         but buffer still contain some unprocessed stuff. trigger is bufpos < buffill.
  *
  */
 struct ap_net_conn_pool_t *ap_net_conn_pool_create(int flags, int max_connections, int connection_timeout_ms, int conn_buf_size, ap_net_conn_pool_callback_func in_callback_func)
@@ -92,6 +92,7 @@ struct ap_net_conn_pool_t *ap_net_conn_pool_create(int flags, int max_connection
     {
         ap_error_set_detailed(_func_name, AP_ERRNO_CUSTOM_MESSAGE, "max_conn_ttl setup");
         free(pool);
+
         return NULL;
     }
 

@@ -21,7 +21,7 @@ static const char *_func_name = "ap_net_conn_pool_move_conn()";
  */
 void ap_net_connection_copy(struct ap_net_connection_t *dst_conn, struct ap_net_connection_t *src_conn)
 {
-	void *tmp;
+    void *tmp;
 
 
     dst_conn->fd = src_conn->fd;
@@ -103,14 +103,14 @@ int ap_net_conn_pool_move_conn(struct ap_net_conn_pool_t *dst_pool, struct ap_ne
     bit_clear(src_conn->state, AP_NET_ST_CONNECTED);
 
     if ( src_pool->callback_func != NULL ) /* force reinit of user's data */
-    	src_pool->callback_func(src_conn, AP_NET_SIGNAL_CONN_MOVED_FROM);
+        src_pool->callback_func(src_conn, AP_NET_SIGNAL_CONN_MOVED_FROM);
 
     ap_net_conn_pool_unlock(src_pool);
 
     ap_net_conn_pool_poller_add_conn(dst_pool, dst_conn_idx);
 
     if ( dst_pool->callback_func != NULL ) /* force reinit of user's data */
-    	dst_pool->callback_func(dst_conn, AP_NET_SIGNAL_CONN_MOVED_TO);
+        dst_pool->callback_func(dst_conn, AP_NET_SIGNAL_CONN_MOVED_TO);
 
     ap_net_conn_pool_unlock(dst_pool);
 

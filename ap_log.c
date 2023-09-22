@@ -144,8 +144,8 @@ static int remove_debug_handle_internal(int fd)
     {
         if ( debug_handles[i].fd == fd )
         {
-            for ( ii = i+1; ii < debug_handles_count; ++ii )
-            	memcpy(&debug_handles[ii - 1], &debug_handles[ii], sizeof(debug_handles_t));
+            for ( ii = i + 1; ii < debug_handles_count; ++ii )
+                memcpy(&debug_handles[ii - 1], &debug_handles[ii], sizeof(debug_handles_t));
 
             --debug_handles_count;
 
@@ -220,14 +220,14 @@ void ap_log_debug_log_raw(char *buf, int buflen)
 
     for ( i = 0; i < debug_handles_count; ++i )
     {
-    	if ( S_ISREG(debug_handles[i].statbuf.st_mode) ) /* regular file? */
-    	{
+        if ( S_ISREG(debug_handles[i].statbuf.st_mode) ) /* regular file? */
+        {
             write(debug_handles[i].fd, buf, buflen);
             continue;
-    	}
+        }
 
-    	/* socket */
-		/*
+        /* socket */
+        /*
         n = ap_net_poller_single_fd(debug_handles[i]);
         if ( n & AP_NET_POLLER_ST_ERROR )
         {
@@ -236,11 +236,11 @@ void ap_log_debug_log_raw(char *buf, int buflen)
         }
         */
 
-		if ( 0 >= send(debug_handles[i].fd, buf, buflen, MSG_NOSIGNAL))
-		{
+        if ( 0 >= send(debug_handles[i].fd, buf, buflen, MSG_NOSIGNAL))
+        {
             remove_debug_handle_internal(debug_handles[i].fd);
             i--;
-		}
+        }
     }
 }
 
@@ -360,7 +360,7 @@ int ap_log_hprintf(int file_handle, char *fmt, ...)
     va_end(vl);
 
     if ( retcode <= 0 )
-    	ap_error_set("ap_log_hprintf()", AP_ERRNO_SYSTEM);
+        ap_error_set("ap_log_hprintf()", AP_ERRNO_SYSTEM);
 
     return retcode;
 }
@@ -381,7 +381,7 @@ int ap_log_hputs(char *str, int file_handle)
     retcode = write(file_handle, str, strlen(str));
 
     if ( retcode <= 0 )
-    	ap_error_set("ap_log_hprintf()", AP_ERRNO_SYSTEM);
+        ap_error_set("ap_log_hprintf()", AP_ERRNO_SYSTEM);
 
     return retcode;
 }
@@ -473,7 +473,7 @@ void ap_log_mem_dump(void *memory_area, int len)
         ap_log_mem_dump_to_fd(fileno(stderr), memory_area, len);
 
     for ( i = 0; i < debug_handles_count; ++i )
-       	ap_log_mem_dump_to_fd(debug_handles[i].fd, memory_area, len);
+        ap_log_mem_dump_to_fd(debug_handles[i].fd, memory_area, len);
 }
 
 /* ********************************************************************** */

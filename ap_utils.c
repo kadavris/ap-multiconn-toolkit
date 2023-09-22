@@ -22,6 +22,7 @@ int ap_utils_timeval_cmp_to_now(struct timeval *tv)
 
     if ( timercmp(tv, &now, >) )
         return 1;
+
     else if ( timercmp(tv, &now, <) )
         return -1;
 
@@ -44,43 +45,43 @@ int ap_utils_timeval_cmp_to_now(struct timeval *tv)
  */
 int ap_utils_timeval_set(struct timeval *tv, int mode, int msec)
 {
-	  struct timeval tmp;
+    struct timeval tmp;
 
 
-	  if ( msec < 1 )
-		  return 0;
+    if ( msec < 1 )
+        return 0;
 
-	  switch( mode )
-	  {
-		  case AP_UTILS_TIME_ADD:
-			  tmp.tv_sec = msec / 1000;
-			  tmp.tv_usec = 1000 * (msec % 1000);
-			  timeradd(tv, &tmp, tv);
-			  break;
+    switch( mode )
+    {
+        case AP_UTILS_TIME_ADD:
+            tmp.tv_sec = msec / 1000;
+            tmp.tv_usec = 1000 * (msec % 1000);
+            timeradd(tv, &tmp, tv);
+            break;
 
-		  case AP_UTILS_TIME_SUB:
-			  tmp.tv_sec = msec / 1000;
-			  tmp.tv_usec = 1000 * (msec % 1000);
-			  timersub(tv, &tmp, tv);
-			  break;
+        case AP_UTILS_TIME_SUB:
+            tmp.tv_sec = msec / 1000;
+            tmp.tv_usec = 1000 * (msec % 1000);
+            timersub(tv, &tmp, tv);
+            break;
 
-		  case AP_UTILS_TIME_SET_FROM_NOW:
-			  gettimeofday(tv, NULL);
-			  tmp.tv_sec = msec / 1000;
-			  tmp.tv_usec = 1000 * (msec % 1000);
-			  timeradd(tv, &tmp, tv);
-			  break;
+        case AP_UTILS_TIME_SET_FROM_NOW:
+            gettimeofday(tv, NULL);
+            tmp.tv_sec = msec / 1000;
+            tmp.tv_usec = 1000 * (msec % 1000);
+            timeradd(tv, &tmp, tv);
+            break;
 
-		  case AP_UTILS_TIME_SET_FROMZERO:
-			  tv->tv_sec = msec / 1000;
-			  tv->tv_usec = 1000 * (msec % 1000);
-			  break;
+        case AP_UTILS_TIME_SET_FROMZERO:
+            tv->tv_sec = msec / 1000;
+            tv->tv_usec = 1000 * (msec % 1000);
+            break;
 
-		  default:
-			  return 0;
-	  }
+        default:
+            return 0;
+    }
 
-	  return 1;
+    return 1;
 }
 
 #define MAX_NSEC 1000000000l
@@ -95,13 +96,13 @@ int ap_utils_timespec_cmp_to_now(struct timespec *ts)
 {
     struct timespec now;
 
-	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+    clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 
     if ( ts->tv_sec > now.tv_sec )
         return 1;
 
     if ( ts->tv_sec < now.tv_sec )
-    	return -1;
+        return -1;
 
     if ( ts->tv_nsec > now.tv_nsec )
         return 1;
@@ -128,45 +129,46 @@ int ap_utils_timespec_cmp_to_now(struct timespec *ts)
  */
 int ap_utils_timespec_set(struct timespec *ts, int mode, int msec)
 {
-	long tmp;
+    long tmp;
 
 
-	if ( msec < 0 )
-		return 0;
+    if ( msec < 0 )
+        return 0;
 
-	switch( mode )
-	{
-		case AP_UTILS_TIME_ADD:
-			ts->tv_nsec += msec * 1000000l;
-			break;
+    switch( mode )
+    {
+        case AP_UTILS_TIME_ADD:
+            ts->tv_nsec += msec * 1000000l;
+            break;
 
-		case AP_UTILS_TIME_SUB:
-			ts->tv_nsec -= msec * 1000000l;
-			break;
+        case AP_UTILS_TIME_SUB:
+            ts->tv_nsec -= msec * 1000000l;
+            break;
 
-    	case AP_UTILS_TIME_SET_FROM_NOW:
-    		clock_gettime(CLOCK_MONOTONIC_RAW, ts);
-    		ts->tv_nsec += msec * 1000000l;
-    		break;
+        case AP_UTILS_TIME_SET_FROM_NOW:
+            clock_gettime(CLOCK_MONOTONIC_RAW, ts);
+            ts->tv_nsec += msec * 1000000l;
+            break;
 
-    	case AP_UTILS_TIME_SET_FROMZERO:
-    		ts->tv_sec = msec / 1000;
-    		ts->tv_nsec = MAX_NSEC * (msec % 1000l);
-    		return 1;
+        case AP_UTILS_TIME_SET_FROMZERO:
+            ts->tv_sec = msec / 1000;
+            ts->tv_nsec = MAX_NSEC * (msec % 1000l);
+            return 1;
 
-    	default:
-    		return 0;
-	}
+        default:
+            return 0;
+    }
 
     if ( ts->tv_nsec >= MAX_NSEC )
     {
-    	tmp = ts->tv_nsec / MAX_NSEC;
+        tmp = ts->tv_nsec / MAX_NSEC;
         ts->tv_nsec -= tmp * MAX_NSEC;
         ts->tv_sec += tmp;
     }
+
     else if ( ts->tv_nsec < 0l )
     {
-    	tmp = labs(ts->tv_nsec) / MAX_NSEC;
+        tmp = labs(ts->tv_nsec) / MAX_NSEC;
         ts->tv_nsec = MAX_NSEC + ts->tv_nsec + tmp * MAX_NSEC;
         ts->tv_sec -= tmp;
     }
@@ -182,7 +184,7 @@ int ap_utils_timespec_set(struct timespec *ts, int mode, int msec)
  */
 void ap_utils_timespec_clear(struct timespec *ts)
 {
-	ts->tv_nsec = 0l; ts->tv_sec = 0;
+    ts->tv_nsec = 0l; ts->tv_sec = 0;
 }
 
 /*=========================================================*/
@@ -193,7 +195,7 @@ void ap_utils_timespec_clear(struct timespec *ts)
  */
 int ap_utils_timespec_is_set(struct timespec *ts)
 {
-	return (ts->tv_sec > 0 || ts->tv_nsec > 0l);
+    return (ts->tv_sec > 0 || ts->tv_nsec > 0l);
 }
 
 /*=========================================================*/
@@ -206,17 +208,17 @@ int ap_utils_timespec_is_set(struct timespec *ts)
  */
 void ap_utils_timespec_add(struct timespec *a, struct timespec *b, struct timespec *destination)
 {
-	long tmp;
+    long tmp;
 
 
-	destination->tv_sec = a->tv_sec + b->tv_sec;
-	destination->tv_nsec = a->tv_nsec + b->tv_nsec;
+    destination->tv_sec = a->tv_sec + b->tv_sec;
+    destination->tv_nsec = a->tv_nsec + b->tv_nsec;
 
-	if ( destination->tv_nsec >= MAX_NSEC )
+    if ( destination->tv_nsec >= MAX_NSEC )
     {
-    	tmp = destination->tv_nsec / MAX_NSEC;
-    	destination->tv_nsec -= tmp * MAX_NSEC;
-    	destination->tv_sec += tmp;
+        tmp = destination->tv_nsec / MAX_NSEC;
+        destination->tv_nsec -= tmp * MAX_NSEC;
+        destination->tv_sec += tmp;
     }
 }
 
@@ -230,17 +232,17 @@ void ap_utils_timespec_add(struct timespec *a, struct timespec *b, struct timesp
  */
 void ap_utils_timespec_sub(struct timespec *a, struct timespec *b, struct timespec *destination)
 {
-	long tmp;
+    long tmp;
 
 
-	destination->tv_sec = a->tv_sec - b->tv_sec;
-	destination->tv_nsec = a->tv_nsec - b->tv_nsec;
+    destination->tv_sec = a->tv_sec - b->tv_sec;
+    destination->tv_nsec = a->tv_nsec - b->tv_nsec;
 
     if ( destination->tv_nsec <= -MAX_NSEC )
     {
-    	tmp = destination->tv_nsec / MAX_NSEC;
-    	destination->tv_nsec = destination->tv_nsec + tmp * MAX_NSEC;
-    	destination->tv_sec += tmp;
+        tmp = destination->tv_nsec / MAX_NSEC;
+        destination->tv_nsec = destination->tv_nsec + tmp * MAX_NSEC;
+        destination->tv_sec += tmp;
     }
 }
 
@@ -258,29 +260,30 @@ void ap_utils_timespec_sub(struct timespec *a, struct timespec *b, struct timesp
  */
 long ap_utils_timespec_elapsed(struct timespec *begin, struct timespec *end, struct timespec *destination)
 {
-	struct timespec now;
+    struct timespec now;
 
 
-	if ( begin == NULL && end == NULL )
-		return 0;
+    if ( begin == NULL && end == NULL )
+        return 0;
 
-	if ( begin == NULL )
-	{
-		clock_gettime(CLOCK_MONOTONIC_RAW, &now);
-		begin = &now;
-	}
-	else if ( end == NULL )
-	{
-		clock_gettime(CLOCK_MONOTONIC_RAW, &now);
-		end = &now;
-	}
+    if ( begin == NULL )
+    {
+        clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+        begin = &now;
+    }
 
-	if ( destination == NULL )
-		destination = &now;
+    else if ( end == NULL )
+    {
+        clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+        end = &now;
+    }
 
-	ap_utils_timespec_sub(end, begin, destination);
+    if ( destination == NULL )
+        destination = &now;
 
-	return destination->tv_sec * 1000l + destination->tv_nsec / 1000000l;
+    ap_utils_timespec_sub(end, begin, destination);
+
+    return destination->tv_sec * 1000l + destination->tv_nsec / 1000000l;
 }
 
 /*=========================================================*/
@@ -291,13 +294,13 @@ long ap_utils_timespec_elapsed(struct timespec *begin, struct timespec *end, str
  */
 long ap_utils_timespec_to_milliseconds(struct timespec *ts)
 {
-	long retval;
+    long retval;
 
 
-	retval = ts->tv_sec * 1000l;
+    retval = ts->tv_sec * 1000l;
 
     if ( ts->tv_nsec > 0l )
-    	retval += ts->tv_nsec / 1000000l;
+        retval += ts->tv_nsec / 1000000l;
 
     return retval;
 }
@@ -311,19 +314,19 @@ long ap_utils_timespec_to_milliseconds(struct timespec *ts)
  */
 uint16_t count_crc16(void *mem, int len)
 {
-  uint16_t a, crc16;
-  uint8_t *pch;
+    uint16_t a, crc16;
+    uint8_t *pch;
 
-  pch = (uint8_t *)mem;
-  crc16 = 0;
+    pch = (uint8_t *)mem;
+    crc16 = 0;
 
-  while(len--)
-  {
-    crc16 ^= *pch;
-    a = (crc16 ^ (crc16 << 4)) & 0x00FF;
-    crc16 = (crc16 >> 8) ^ (a << 8) ^ (a << 3) ^ (a >> 4);
-    ++pch;
-  }
+    while(len--)
+    {
+      crc16 ^= *pch;
+      a = (crc16 ^ (crc16 << 4)) & 0x00FF;
+      crc16 = (crc16 >> 8) ^ (a << 8) ^ (a << 3) ^ (a >> 4);
+      ++pch;
+    }
 
-  return(crc16);
+    return(crc16);
 }

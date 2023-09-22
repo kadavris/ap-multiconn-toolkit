@@ -33,28 +33,29 @@ int ap_net_conn_pool_set_max_connections(struct ap_net_conn_pool_t *pool, int ne
     if ( new_max == pool->max_connections )
         return 1;
 
-	if ( new_max < pool->used_slots ) /* no free slots for live connections - no downsizing */
-	{
-		ap_error_set_detailed(_func_name, AP_ERRNO_CONNLIST_FULL, "Can't downsize pool: too many live connections");
-		return 0;
-	}
+    if ( new_max < pool->used_slots ) /* no free slots for live connections - no downsizing */
+    {
+        ap_error_set_detailed(_func_name, AP_ERRNO_CONNLIST_FULL, "Can't downsize pool: too many live connections");
+        return 0;
+    }
 
     if ( ! ap_net_conn_pool_lock(pool))
     {
         ap_error_set(_func_name, AP_ERRNO_LOCKED);
-    	return 0;
+        return 0;
     }
 
     for ( i = 0; i < pool->max_connections; ++i ) /* locking conns */
-    	if ( ! ap_net_connection_lock(&pool->conns[i]))
-    	{
-    		while(--i) /* undo on previous */
-    			ap_net_connection_unlock(&pool->conns[i]);
+        if ( ! ap_net_connection_lock(&pool->conns[i]))
+        {
+            while(--i) /* undo on previous */
+                ap_net_connection_unlock(&pool->conns[i]);
 
             ap_net_conn_pool_unlock(pool);
             ap_error_set(_func_name, AP_ERRNO_LOCKED);
-    		return 0;
-    	}
+
+            return 0;
+        }
 
     retval = 0; /* error state by default */
 
@@ -65,30 +66,30 @@ int ap_net_conn_pool_set_max_connections(struct ap_net_conn_pool_t *pool, int ne
         /* defragmenting. moving active connections from end to free slots at the beginning of connections list */
         for ( i = new_max - 1; i < pool->max_connections; ++i )
         {
-        	for (++n;; ++n ) /* finding free slot */
-        		if ( ! (pool->conns[n].state & AP_NET_ST_CONNECTED) )
-        			break;
+            for (++n;; ++n ) /* finding free slot */
+                if ( ! (pool->conns[n].state & AP_NET_ST_CONNECTED) )
+                    break;
 
             ap_net_connection_copy(&pool->conns[n], &pool->conns[i]);
             bit_clear(pool->conns[i].state, AP_NET_ST_CONNECTED);
             pool->conns[i].fd = -1;
 
             if ( pool->callback_func != NULL )
-   			{
-        		pool->callback_func(&pool->conns[n], AP_NET_SIGNAL_CONN_MOVED_TO);
-        		pool->callback_func(&pool->conns[i], AP_NET_SIGNAL_CONN_MOVED_FROM);
+            {
+                pool->callback_func(&pool->conns[n], AP_NET_SIGNAL_CONN_MOVED_TO);
+                pool->callback_func(&pool->conns[i], AP_NET_SIGNAL_CONN_MOVED_FROM);
             }
         }
 
         for ( i = new_max; i < pool->max_connections; ++i ) /* destroying extra */
-        	ap_net_connection_destroy(&pool->conns[i], 0);
+            ap_net_connection_destroy(&pool->conns[i], 0);
     } /* if ( new_max < pool->max_connections ) */
 
-	new_mem = realloc(pool->conns, new_max * sizeof(struct ap_net_connection_t));
+    new_mem = realloc(pool->conns, new_max * sizeof(struct ap_net_connection_t));
 
     if ( new_mem == NULL )
     {
-     	 ap_error_set(_func_name, AP_ERRNO_OOM);
+         ap_error_set(_func_name, AP_ERRNO_OOM);
          goto unlock;
     }
 
@@ -113,13 +114,14 @@ int ap_net_conn_pool_set_max_connections(struct ap_net_conn_pool_t *pool, int ne
             {
                 pool->conns[i].bufsize = 0;
                 ap_error_set(_func_name, AP_ERRNO_OOM);
+
                 goto unlock;
             }
 
             pool->conns[i].user_data = NULL;
 
             if ( pool->callback_func != NULL )
-        		pool->callback_func(&pool->conns[i], AP_NET_SIGNAL_CONN_CREATED);
+                pool->callback_func(&pool->conns[i], AP_NET_SIGNAL_CONN_CREATED);
 
         }
     }
@@ -128,10 +130,10 @@ int ap_net_conn_pool_set_max_connections(struct ap_net_conn_pool_t *pool, int ne
     retval = 1;
 
 unlock:
-	for (n = 0; n < pool->max_connections; ++n )
-		ap_net_connection_unlock(&pool->conns[n]);
+    for (n = 0; n < pool->max_connections; ++n )
+        ap_net_connection_unlock(&pool->conns[n]);
 
-	ap_net_conn_pool_unlock(pool);
+    ap_net_conn_pool_unlock(pool);
 
     return retval;
 }

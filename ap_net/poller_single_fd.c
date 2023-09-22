@@ -61,13 +61,13 @@ int ap_net_poller_single_fd(int fd)
     poll_status = 0;
 
     if ( ev.events & EPOLLIN ) /* incoming data available */
-    	poll_status |= AP_NET_POLLER_ST_IN;
+        poll_status |= AP_NET_POLLER_ST_IN;
 
     if ( ev.events & EPOLLOUT ) /* can send */
-    	poll_status |= AP_NET_POLLER_ST_OUT;
+        poll_status |= AP_NET_POLLER_ST_OUT;
 
     if ( ev.events & (EPOLLERR | EPOLLHUP ) ) /* connection's ERROR */
-    	poll_status |= AP_NET_POLLER_ST_ERROR;
+        poll_status |= AP_NET_POLLER_ST_ERROR;
 
     return poll_status;
 }

@@ -33,14 +33,14 @@ struct ap_net_connection_t *ap_net_conn_pool_accept_connection(struct ap_net_con
 
     if ( bit_is_set(pool->flags, AP_NET_POOL_FLAGS_TCP) )
     {
-    	conn = ap_net_conn_pool_find_free_slot(pool);
+        conn = ap_net_conn_pool_find_free_slot(pool);
 
-    	if ( conn == NULL )
-    		return NULL;
+        if ( conn == NULL )
+            return NULL;
 
-    	ap_net_conn_pool_connection_pre_connect(pool, conn->idx, 0);
+        ap_net_conn_pool_connection_pre_connect(pool, conn->idx, 0);
 
-    	conn->remote.af = bit_is_set(pool->flags, AP_NET_POOL_FLAGS_IPV6) ? AF_INET6 : AF_INET;
+        conn->remote.af = bit_is_set(pool->flags, AP_NET_POOL_FLAGS_IPV6) ? AF_INET6 : AF_INET;
         remote_addr = bit_is_set(pool->flags, AP_NET_POOL_FLAGS_IPV6) ? (struct sockaddr *)&conn->remote.addr6 : (struct sockaddr *)&conn->remote.addr4;
         addr_len = bit_is_set(pool->flags, AP_NET_POOL_FLAGS_IPV6) ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in);
 
@@ -59,25 +59,25 @@ struct ap_net_connection_t *ap_net_conn_pool_accept_connection(struct ap_net_con
 
         if ( ! ap_net_conn_pool_poller_add_conn(pool, conn->idx) ) /* UDP adding new socket fd when do pool_connect(), so we need it here once */
         {
-        	ap_net_conn_pool_close_connection(pool, conn->idx);
-        	return NULL;
+            ap_net_conn_pool_close_connection(pool, conn->idx);
+            return NULL;
         }
 
-    	if (pool->callback_func != NULL && ! pool->callback_func(conn, AP_NET_SIGNAL_CONN_ACCEPTED) ) /* user disagreed */
+        if (pool->callback_func != NULL && ! pool->callback_func(conn, AP_NET_SIGNAL_CONN_ACCEPTED) ) /* user disagreed */
         {
-          	ap_net_conn_pool_close_connection(pool, conn->idx);
-          	ap_error_set(_func_name, AP_ERRNO_ACCEPT_DENIED);
-           	return NULL;
+            ap_net_conn_pool_close_connection(pool, conn->idx);
+            ap_error_set(_func_name, AP_ERRNO_ACCEPT_DENIED);
+            return NULL;
         }
 
     }
     else /* UDP pool */
     {
-    	/* first peeking at the top of messages queue for just address of remote peer
-    	 * then do connect from our side to lock remote address to the new connection's socket
-    	 */
-    	addr_len = sizeof(addr);
-    	n = recvfrom(pool->listener.sock, &n, 1, MSG_DONTWAIT | MSG_PEEK, (struct sockaddr *)&addr, &addr_len);
+        /* first peeking at the top of messages queue for just address of remote peer
+         * then do connect from our side to lock remote address to the new connection's socket
+         */
+        addr_len = sizeof(addr);
+        n = recvfrom(pool->listener.sock, &n, 1, MSG_DONTWAIT | MSG_PEEK, (struct sockaddr *)&addr, &addr_len);
 
         if ( n == -1 )
         {
@@ -90,34 +90,34 @@ struct ap_net_connection_t *ap_net_conn_pool_accept_connection(struct ap_net_con
         if ( conn == NULL )
         {
             /* new connection */
-        	if ( addr.ss_family == AF_INET )
-        	{
+            if ( addr.ss_family == AF_INET )
+            {
                 conn = ap_net_conn_pool_connect_ip4(pool, AP_NET_CONN_FLAGS_UDP_IN,
-                			ntohl(((struct sockaddr_in*)&addr)->sin_addr.s_addr), ntohs(((struct sockaddr_in*)&addr)->sin_port),
-                			ap_utils_timespec_to_milliseconds(&pool->max_conn_ttl));
-        	}
-        	else
-        	{
+                            ntohl(((struct sockaddr_in*)&addr)->sin_addr.s_addr), ntohs(((struct sockaddr_in*)&addr)->sin_port),
+                            ap_utils_timespec_to_milliseconds(&pool->max_conn_ttl));
+            }
+            else
+            {
                 conn = ap_net_conn_pool_connect_ip6(pool, AP_NET_CONN_FLAGS_UDP_IN,
-                			&((struct sockaddr_in6*)&addr)->sin6_addr, ntohs(((struct sockaddr_in6*)&addr)->sin6_port),
-                			ap_utils_timespec_to_milliseconds(&pool->max_conn_ttl));
-        	}
+                            &((struct sockaddr_in6*)&addr)->sin6_addr, ntohs(((struct sockaddr_in6*)&addr)->sin6_port),
+                            ap_utils_timespec_to_milliseconds(&pool->max_conn_ttl));
+            }
 
             if( conn == NULL )
                 return NULL;
 
             if (pool->callback_func != NULL && ! pool->callback_func(conn, AP_NET_SIGNAL_CONN_ACCEPTED) ) /* user disagreed */
             {
-               	ap_net_conn_pool_close_connection(pool, conn->idx);
-               	ap_error_set(_func_name, AP_ERRNO_ACCEPT_DENIED);
-               	return NULL;
+                ap_net_conn_pool_close_connection(pool, conn->idx);
+                ap_error_set(_func_name, AP_ERRNO_ACCEPT_DENIED);
+                return NULL;
             }
         }
 
-    	n = ap_net_conn_pool_recv(pool, conn->idx);
+        n = ap_net_conn_pool_recv(pool, conn->idx);
 
-    	if ( n > 0 && pool->callback_func != NULL )
-            	pool->callback_func(conn, AP_NET_SIGNAL_CONN_DATA_IN);
+        if ( n > 0 && pool->callback_func != NULL )
+                pool->callback_func(conn, AP_NET_SIGNAL_CONN_DATA_IN);
 
         return conn;
     }

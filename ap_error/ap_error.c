@@ -139,13 +139,13 @@ const char *ap_error_get_string(void)
 
     if ( ap_log_err_errno == 0 && ap_log_syserrno == 0 && errno == 0 )
     {
-    	sprintf(buf, ap_log_errno_strings[ap_log_err_errno]);
-    	return buf;
+        sprintf(buf, ap_log_errno_strings[ap_log_err_errno]);
+        return buf;
     }
 
     if ( ap_log_err_errno == 0 && errno != 0 )
     {
-        snprintf(buf, ap_error_str_maxlen, "There is no error recorded inside AP's_toolkit functions, but system error is: %d/'%s'. ", errno, strerror(errno));
+        snprintf(buf, ap_error_str_maxlen, "There is no error recorded for AP's_toolkit functions, but system error is: %d/'%s'. ", errno, strerror(errno));
         return (const char *)buf;
     }
 
@@ -156,10 +156,11 @@ const char *ap_error_get_string(void)
     if ( ap_log_syserrno )
         bufpos += snprintf(buf + bufpos, ap_error_str_maxlen - bufpos, "system error: %d/'%s'. ", ap_log_syserrno, strerror(ap_log_syserrno));
 
-	if ( *ap_log_err_details )
-    	strncat(buf + bufpos, ap_log_err_details, ap_error_str_maxlen - bufpos);
+    if ( *ap_log_err_details )
+        strncat(buf + bufpos, ap_log_err_details, ap_error_str_maxlen - bufpos);
+
     else if ( ! ap_log_syserrno )
-    	bufpos += snprintf(buf + bufpos, ap_error_str_maxlen - bufpos, "%d/'%s'. %s",	ap_log_err_errno, ap_log_errno_strings[ap_log_err_errno], ap_log_err_details);
+        bufpos += snprintf(buf + bufpos, ap_error_str_maxlen - bufpos, "%d/'%s'. %s", ap_log_err_errno, ap_log_errno_strings[ap_log_err_errno], ap_log_err_details);
 
     return (const char *)buf;
 }

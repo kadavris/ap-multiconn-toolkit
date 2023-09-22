@@ -23,8 +23,8 @@ static const char *_func_name = "ap_net_conn_pool_listener_create()";
  */
 int ap_net_conn_pool_listener_create(struct ap_net_conn_pool_t *pool, int max_tries, int retry_sleep)
 {
-	size_t addr_len;
-	struct sockaddr *addr;
+    size_t addr_len;
+    struct sockaddr *addr;
 
 
     ap_error_clear();
@@ -46,13 +46,13 @@ int ap_net_conn_pool_listener_create(struct ap_net_conn_pool_t *pool, int max_tr
 
     if (bit_is_set(pool->flags, AP_NET_POOL_FLAGS_IPV6))
     {
-    	addr = (struct sockaddr *)(&pool->listener.addr6);
-    	addr_len = sizeof(struct sockaddr_in6);
+        addr = (struct sockaddr *)(&pool->listener.addr6);
+        addr_len = sizeof(struct sockaddr_in6);
     }
     else
     {
-    	addr = (struct sockaddr *)(&pool->listener.addr4);
-    	addr_len = sizeof(struct sockaddr_in);
+        addr = (struct sockaddr *)(&pool->listener.addr4);
+        addr_len = sizeof(struct sockaddr_in);
     }
 
     for(;;)
@@ -65,6 +65,7 @@ int ap_net_conn_pool_listener_create(struct ap_net_conn_pool_t *pool, int max_tr
             ap_error_set_detailed(_func_name, AP_ERRNO_SYSTEM, "bind()");
             close(pool->listener.sock);
             pool->listener.sock = -1;
+
             return -1;
         }
 
@@ -73,20 +74,21 @@ int ap_net_conn_pool_listener_create(struct ap_net_conn_pool_t *pool, int max_tr
         sleep(retry_sleep);
     }
 
-   	fcntl(pool->listener.sock, F_SETFL, fcntl(pool->listener.sock, F_GETFL) | O_NONBLOCK);
+    fcntl(pool->listener.sock, F_SETFL, fcntl(pool->listener.sock, F_GETFL) | O_NONBLOCK);
 
-   	if ( pool->poller != NULL ) /* recreating. ugly, but fine for now */
-   	{
-   		ap_net_poller_destroy(pool->poller);
-   		pool->poller = NULL;
-   	}
+    if ( pool->poller != NULL ) /* recreating. ugly, but fine for now */
+    {
+        ap_net_poller_destroy(pool->poller);
+        pool->poller = NULL;
+    }
 
-	if ( ! ap_net_conn_pool_poller_create(pool))
-	{
+    if ( ! ap_net_conn_pool_poller_create(pool))
+    {
         close(pool->listener.sock);
         pool->listener.sock = -1;
+
         return -1;
-	}
+    }
 
     if ( bit_is_set(pool->flags, AP_NET_POOL_FLAGS_TCP)
          && 0 != listen(pool->listener.sock, pool->max_connections) )
@@ -94,6 +96,7 @@ int ap_net_conn_pool_listener_create(struct ap_net_conn_pool_t *pool, int max_tr
         ap_error_set_detailed(_func_name, AP_ERRNO_SYSTEM, "listen()");
         close(pool->listener.sock);
         pool->listener.sock = -1;
+
         return -1;
     }
 

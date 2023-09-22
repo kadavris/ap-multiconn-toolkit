@@ -51,7 +51,7 @@ void ap_net_conn_pool_close_connection(struct ap_net_conn_pool_t *pool, int conn
     if ( ! used_as_debug_handle && conn->parent != NULL ) /*  debug connections will not count for execution time */
     {
         ap_utils_timespec_elapsed(&conn->created_time, NULL, &ts);
-      	ap_utils_timespec_add(&conn->parent->stat.total_time, &ts, &conn->parent->stat.total_time);
+        ap_utils_timespec_add(&conn->parent->stat.total_time, &ts, &conn->parent->stat.total_time);
     }
 
     if ( ap_log_debug_level > 0 )

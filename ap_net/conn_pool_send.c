@@ -37,38 +37,39 @@ int ap_net_conn_pool_send_async(struct ap_net_conn_pool_t *pool, int conn_idx, v
 
     conn->state |= AP_NET_ST_OUT;
 
-	slen = bit_is_set(pool->flags, AP_NET_POOL_FLAGS_IPV6) ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in);
+    slen = bit_is_set(pool->flags, AP_NET_POOL_FLAGS_IPV6) ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in);
 
-	send_chunk = size;
+    send_chunk = size;
 
     for(;;)
     {
-		if ( bit_is_set(pool->flags, AP_NET_POOL_FLAGS_TCP) )
-			n = ap_net_send(conn->fd, src_buf, send_chunk, 1);
-		else
-			n = sendto(conn->fd, src_buf, send_chunk, 0, (struct sockaddr *)&conn->remote, slen);
+        if ( bit_is_set(pool->flags, AP_NET_POOL_FLAGS_TCP) )
+            n = ap_net_send(conn->fd, src_buf, send_chunk, 1);
+        else
+            n = sendto(conn->fd, src_buf, send_chunk, 0, (struct sockaddr *)&conn->remote, slen);
 
-		bit_clear(conn->state, AP_NET_ST_OUT);
+        bit_clear(conn->state, AP_NET_ST_OUT);
 
-		if ( n > 0 )
-			break;
+        if ( n > 0 )
+            break;
 
-		if ( errno == EAGAIN || errno == EWOULDBLOCK )
-		{
-			if ( send_chunk < 10 ) /*  well, we tried */
-				break;
+        if ( errno == EAGAIN || errno == EWOULDBLOCK )
+        {
+            if ( send_chunk < 10 ) /*  well, we tried */
+                break;
 
-			send_chunk /= 2;
-			continue;
-		}
-		else if ( (n == -1 && errno == EPIPE) || n == 0)
-		{
-			if (ap_log_debug_level)
-				ap_log_debug_log("? ap_net_conn_pool_send(): Connection #%d is dead prematurely: %m\n", conn_idx);
+            send_chunk /= 2;
+            continue;
+        }
 
-			ap_net_conn_pool_close_connection(pool, conn_idx);
-			break;
-		}
+        else if ( (n == -1 && errno == EPIPE) || n == 0)
+        {
+            if (ap_log_debug_level)
+                ap_log_debug_log("? ap_net_conn_pool_send(): Connection #%d is dead prematurely: %m\n", conn_idx);
+
+            ap_net_conn_pool_close_connection(pool, conn_idx);
+            break;
+        }
     }
 
     return n;
@@ -94,7 +95,7 @@ int ap_net_conn_pool_send(struct ap_net_conn_pool_t *pool, int conn_idx, void *s
 
 
     if ( bit_is_set(pool->flags, AP_NET_POOL_FLAGS_ASYNC) )
-    	return ap_net_conn_pool_send_async(pool, conn_idx, src_buf, size);
+        return ap_net_conn_pool_send_async(pool, conn_idx, src_buf, size);
 
     ap_error_clear();
 

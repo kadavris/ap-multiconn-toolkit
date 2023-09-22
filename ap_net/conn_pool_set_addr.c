@@ -18,37 +18,39 @@ static const char *err_bad_port = "bad port: %d";
 */
 int ap_net_set_str_addr(int af, void *destination, const char *address_str, socklen_t addr_len, int port)
 {
-	const char *_func_name = "ap_net_set_str_addr()";
+    const char *_func_name = "ap_net_set_str_addr()";
 
 
     if ( af == AF_INET6 )
     {
-    	if ( addr_len < sizeof(struct sockaddr_in6))
-    	{
-    		ap_error_set_custom(_func_name, (char*)err_bad_buf_len);
-            return 0;
-    	}
+         if ( addr_len < sizeof(struct sockaddr_in6))
+         {
+              ap_error_set_custom(_func_name, (char*)err_bad_buf_len);
+              return 0;
+         }
 
-    	((struct sockaddr_in6 *)destination)->sin6_family = AF_INET6;
-    	((struct sockaddr_in6 *)destination)->sin6_port = htons(port);
-    	destination = &(((struct sockaddr_in6 *)destination)->sin6_addr);
+         ((struct sockaddr_in6 *)destination)->sin6_family = AF_INET6;
+         ((struct sockaddr_in6 *)destination)->sin6_port = htons(port);
+         destination = &(((struct sockaddr_in6 *)destination)->sin6_addr);
     }
+
     else if ( af == AF_INET )
     {
-    	if ( addr_len < sizeof(struct sockaddr_in))
-    	{
-    		ap_error_set_custom(_func_name, (char*)err_bad_buf_len);
-            return 0;
-    	}
+         if ( addr_len < sizeof(struct sockaddr_in))
+         {
+              ap_error_set_custom(_func_name, (char*)err_bad_buf_len);
+              return 0;
+         }
 
-    	((struct sockaddr_in *)destination)->sin_family = AF_INET;
-    	((struct sockaddr_in *)destination)->sin_port = htons(port);
-    	destination = &(((struct sockaddr_in *)destination)->sin_addr);
+         ((struct sockaddr_in *)destination)->sin_family = AF_INET;
+         ((struct sockaddr_in *)destination)->sin_port = htons(port);
+         destination = &(((struct sockaddr_in *)destination)->sin_addr);
     }
+
     else
     {
-        ap_error_set_custom(_func_name, "bad address family: %d", af);
-        return 0;
+         ap_error_set_custom(_func_name, "bad address family: %d", af);
+         return 0;
     }
 
     if ( -1 == inet_pton(af, address_str, destination) )
@@ -72,15 +74,15 @@ int ap_net_set_str_addr(int af, void *destination, const char *address_str, sock
 */
 int ap_net_set_ip4_addr(struct sockaddr_in *destination, in_addr_t address4, int port)
 {
-	if ( port <= 0 || port > 65535 )
+    if ( port <= 0 || port > 65535 )
     {
          ap_error_set_custom("ap_net_conn_pool_set_ip4_addr()", (char*)err_bad_port, port);
          return 0;
     }
 
-	destination->sin_family = AF_INET;
-	destination->sin_port = htons(port);
-	destination->sin_addr.s_addr = htonl(address4);
+    destination->sin_family = AF_INET;
+    destination->sin_port = htons(port);
+    destination->sin_addr.s_addr = htonl(address4);
 
     return 1;
 }
@@ -97,14 +99,14 @@ int ap_net_set_ip4_addr(struct sockaddr_in *destination, in_addr_t address4, int
 */
 int ap_net_set_ip6_addr(struct sockaddr_in6 *destination, struct in6_addr *address6, int port)
 {
-	if ( port <= 0 || port > 65535 )
+    if ( port <= 0 || port > 65535 )
     {
          ap_error_set_custom("ap_net_conn_pool_set_ip6_addr()", (char*)err_bad_port, port);
          return 0;
     }
 
     /*TODO: STUB. should check if it is right method: */
-	destination->sin6_family = AF_INET6;
+    destination->sin6_family = AF_INET6;
     destination->sin6_port = htons(port);
     memcpy(&destination->sin6_addr, address6, sizeof(struct in6_addr));
 
@@ -145,8 +147,8 @@ int ap_net_conn_pool_set_ip4_addr(struct ap_net_conn_pool_t *pool, in_addr_t add
 {
     if ( bit_is_set(pool->flags, AP_NET_POOL_FLAGS_IPV6) )
     {
-        ap_error_set_custom("ap_net_conn_pool_set_ip4_addr()", "Pool is set to IPv6 mode");
-        return 0;
+         ap_error_set_custom("ap_net_conn_pool_set_ip4_addr()", "Pool is set to IPv6 mode");
+         return 0;
     }
 
     return ap_net_set_ip4_addr(&pool->listener.addr4, address4, port);
@@ -166,8 +168,8 @@ int ap_net_conn_pool_set_ip6_addr(struct ap_net_conn_pool_t *pool, struct in6_ad
 {
     if ( ! bit_is_set(pool->flags, AP_NET_POOL_FLAGS_IPV6) )
     {
-        ap_error_set_custom("ap_net_conn_pool_set_ip6_addr()", "Pool is set to IPv4 mode");
-        return 0;
+         ap_error_set_custom("ap_net_conn_pool_set_ip6_addr()", "Pool is set to IPv4 mode");
+         return 0;
     }
 
     return ap_net_set_ip6_addr(&pool->listener.addr6, address6, port);

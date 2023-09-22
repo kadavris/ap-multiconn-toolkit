@@ -44,8 +44,8 @@ int ap_net_conn_pool_check_state_sel(struct ap_net_conn_pool_t *pool, int conn_i
     }
 
     /*
-    according to the mans what's down below is total bullshit.
-    you always have to monitor for EPIPE and EAGAIN errors
+    According to the mans, what's down below is total bullshit.
+    You always have to monitor for EPIPE and EAGAIN errors
     and, possibly for 0 bytes read return as eof() indication specifically.
     The read and write states on non-blocked socket are always ON.
     */

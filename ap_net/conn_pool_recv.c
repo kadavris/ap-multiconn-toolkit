@@ -50,22 +50,22 @@ int ap_net_conn_pool_recv(struct ap_net_conn_pool_t *pool, int conn_idx)
     space_left = conn->bufsize - conn->buffill;
 
     if ( space_left == 0 )
-    	return 0;
+        return 0;
 
     conn->state |= AP_NET_ST_IN;
 
     if ( bit_is_set(conn->flags, AP_NET_CONN_FLAGS_UDP_IN) )
     {
         /* this UDP connection is outgoing only and we're doing trick with data moving from listener socket into this conn's buffer */
-    	slen = (conn->remote.af == AF_INET6 ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in));
+        slen = (conn->remote.af == AF_INET6 ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in));
 
         n = recvfrom(pool->listener.sock, conn->buf + conn->buffill, space_left, MSG_DONTWAIT | MSG_NOSIGNAL,
-        		(struct sockaddr*)&conn->remote, &slen
-        	);
+                (struct sockaddr*)&conn->remote, &slen
+            );
     }
     else
     {
-       	n = ap_net_recv(conn->fd, conn->buf + conn->buffill, space_left, 0);
+        n = ap_net_recv(conn->fd, conn->buf + conn->buffill, space_left, 0);
     }
 
     bit_clear(conn->state, AP_NET_ST_IN);

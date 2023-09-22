@@ -27,11 +27,11 @@
  * char *value = NULL; // note the initial value should be NULL. no static initializers allowed too, as it will be attempted to be free()'s
  *
  * if ( ! ap_str_makestr(&value, default)) // setting it to default value
- * 		error()
+ *     error()
  *
  * if ( get_data_into_buffer(buffer) )
- * 		if ( ! ap_str_makestr(&value, buffer)) // and re-setting it to new value
- * 			error()
+ *     if ( ! ap_str_makestr(&value, buffer)) // and re-setting it to new value
+ *         error()
  */
 int ap_str_makestr(char **d, const char *s)
 {
@@ -270,7 +270,8 @@ char *ap_str_parse_skip(ap_str_parse_rec_t *r, int skip_count)
     char *s;
 
     s = r->buf_pos; /* in case of skip_count is invalid from start */
-    while( skip_count-- && NULL != (s = ap_str_parse_next_arg(r)) );
+    while( skip_count-- && NULL != (s = ap_str_parse_next_arg(r)) )
+        ;
 
     return s;
 }

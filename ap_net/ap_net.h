@@ -18,41 +18,41 @@
 #include <sys/types.h>
 
 /* connection statuses bits */
-	    /* ERROR state. Without doubt you should not perform i/o operations on this connection anymore */
+        /* ERROR state. Without doubt you should not perform i/o operations on this connection anymore */
 #define AP_NET_ST_ERROR          1
-		/* Connection is up. Practically means that this record is used and possibly connected, but you must check for other bits too */
+        /* Connection is up. Practically means that this record is used and possibly connected, but you must check for other bits too */
 #define AP_NET_ST_CONNECTED      2
-		/* Busy on internal operation. Should not be visible outside of toolkit. */
+        /* Busy on internal operation. Should not be visible outside of toolkit. */
 #define AP_NET_ST_BUSY           4
-		/* Performing data input. Should not be visible outside of toolkit. */
+        /* Performing data input. Should not be visible outside of toolkit. */
 #define AP_NET_ST_IN             8
-		/* Performing data output. Should not be visible outside of toolkit. */
+        /* Performing data output. Should not be visible outside of toolkit. */
 #define AP_NET_ST_OUT           16
-		/* Expired, close pending. Set in poller, on call to ap_net_conn_pool_close_connection() */
+        /* Expired, close pending. Set in poller, on call to ap_net_conn_pool_close_connection() */
 #define AP_NET_ST_EXPIRED       32
-		/* Closing. Set in poller when data input attempt returns that peer disconnected gracefully. ap_net_conn_pool_poll() closes those on start, so do your best */
+        /* Closing. Set in poller when data input attempt returns that peer disconnected gracefully. ap_net_conn_pool_poll() closes those on start, so do your best */
 #define AP_NET_ST_DISCONNECTION 64
 
 /* Flags for pools */
-		/* Pool is of TCP type. Absence of this flag means UDP pool */
+        /* Pool is of TCP type. Absence of this flag means UDP pool */
 #define AP_NET_POOL_FLAGS_TCP    1
-		/* Perform fully asynchronous I/O operations */
+        /* Perform fully asynchronous I/O operations */
 #define AP_NET_POOL_FLAGS_ASYNC  2
-		/* Pool is in IPv6 mode. Absence of this flag means IPv4 mode. Have sense in server mode */
+        /* Pool is in IPv6 mode. Absence of this flag means IPv4 mode. Have sense in server mode */
 #define AP_NET_POOL_FLAGS_IPV6   4
 
 /* Flags for connections */
-		/* for incoming UDP connections we should read input on listener socket instead */
+        /* for incoming UDP connections we should read input on listener socket instead */
 #define AP_NET_CONN_FLAGS_UDP_IN  1
 
 /* return bits of ap_net_poller_* */
-		/* Status returned for listener socket */
+        /* Status returned for listener socket */
 #define AP_NET_POLLER_ST_LISTENER 1
-		/* error detected */
+        /* error detected */
 #define AP_NET_POLLER_ST_ERROR    2
-		/* data available from peer */
+        /* data available from peer */
 #define AP_NET_POLLER_ST_IN       4
-		/* Socket ready to send data */
+        /* Socket ready to send data */
 #define AP_NET_POLLER_ST_OUT      8
 
 /* signals for callback function. see ap_net_conn_pool_create() for detailed description */
@@ -83,8 +83,8 @@ typedef struct ap_net_connection_t
     union  /**< local address. filled on connect() */
     {
         sa_family_t af; /**< local address family: AF_INET*. */
-    	struct sockaddr_in  addr4; /**< IPv4 local address */
-    	struct sockaddr_in6 addr6; /**< IPv6 local address */
+        struct sockaddr_in  addr4; /**< IPv4 local address */
+        struct sockaddr_in6 addr6; /**< IPv6 local address */
     } local;
 
     union /**< far side of the connection */
@@ -153,12 +153,12 @@ typedef struct ap_net_conn_pool_t
 
     struct
     {
-    	int sock; /**< less than 0 if no bind was made */
-    	union /**< local address. filled on connect() */
-    	{
-    		struct sockaddr_in  addr4; /* IPv4 */
-    		struct sockaddr_in6 addr6; /* IPv6 */
-    	};
+        int sock; /**< less than 0 if no bind was made */
+        union /**< local address. filled on connect() */
+        {
+            struct sockaddr_in  addr4; /* IPv4 */
+            struct sockaddr_in6 addr6; /* IPv6 */
+        };
     } listener; /**< Listener socket setup for server side pool */
 
     ap_net_conn_pool_callback_func callback_func; /**< Callback function pointer for ap_net_conn_pool_poll() */

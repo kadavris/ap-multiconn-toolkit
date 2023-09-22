@@ -11,7 +11,8 @@
 static int lock(unsigned int *state)
 {
     int lock_try;
-#define WAIT_MSEC 50
+    const int WAIT_MSEC = 50;
+
 
     for ( lock_try = 1; *state & AP_NET_ST_BUSY; ++lock_try )
     {
@@ -34,7 +35,7 @@ static int lock(unsigned int *state)
  */
 int ap_net_connection_lock(struct ap_net_connection_t *conn)
 {
-	return lock(&conn->state);
+    return lock(&conn->state);
 }
 
 /* ********************************************************************** */
@@ -56,7 +57,7 @@ void ap_net_connection_unlock(struct ap_net_connection_t *conn)
  */
 int ap_net_conn_pool_lock(struct ap_net_conn_pool_t *pool)
 {
-	return lock(&pool->state);
+    return lock(&pool->state);
 }
 
 /* ********************************************************************** */
@@ -109,7 +110,7 @@ struct ap_net_connection_t *ap_net_conn_pool_get_conn_by_port(struct ap_net_conn
         ip6 = (is_local ? pool->conns[i].local.af : pool->conns[i].remote.af) == AF_INET6;
 
         if ( port == (is_local ? (ip6 ? pool->conns[i].local.addr6.sin6_port : pool->conns[i].local.addr4.sin_port)
-        					   : (ip6 ? pool->conns[i].remote.addr6.sin6_port : pool->conns[i].remote.addr4.sin_port)) )
+                               : (ip6 ? pool->conns[i].remote.addr6.sin6_port : pool->conns[i].remote.addr4.sin_port)) )
             return &pool->conns[i];
     }
 
@@ -126,30 +127,30 @@ struct ap_net_connection_t *ap_net_conn_pool_get_conn_by_port(struct ap_net_conn
  */
 struct ap_net_connection_t *ap_net_conn_pool_get_conn_by_address(struct ap_net_conn_pool_t *pool, struct sockaddr_storage *ss, int is_local)
 {
-	struct ap_net_connection_t *conn;
-	void *address;
-	int port, ip6;
-	int i;
+    struct ap_net_connection_t *conn;
+    void *address;
+    int port, ip6;
+    int i;
 
 
     ip6 = (ss->ss_family == AF_INET6);
-	address = (ip6 ? (void*)&((struct sockaddr_in6 *)ss)->sin6_addr : (void*)&((struct sockaddr_in *)ss)->sin_addr);
-	port = (ip6 ? ((struct sockaddr_in6 *)ss)->sin6_port : ((struct sockaddr_in *)ss)->sin_port);
+    address = (ip6 ? (void*)&((struct sockaddr_in6 *)ss)->sin6_addr : (void*)&((struct sockaddr_in *)ss)->sin_addr);
+    port = (ip6 ? ((struct sockaddr_in6 *)ss)->sin6_port : ((struct sockaddr_in *)ss)->sin_port);
 
     for ( i = 0; i < pool->max_connections; ++i)
     {
-    	conn = &pool->conns[i];
+        conn = &pool->conns[i];
 
         if ( port == (is_local ? (ip6 ? conn->local.addr6.sin6_port : conn->local.addr4.sin_port)
-        			           : (ip6 ? conn->remote.addr6.sin6_port : conn->remote.addr4.sin_port)
-        			 )
+                               : (ip6 ? conn->remote.addr6.sin6_port : conn->remote.addr4.sin_port)
+                     )
              && 0 == memcmp(address,
-            		 	    	(is_local ? (ip6 ? (void*)&conn->local.addr6.sin6_addr : (void*)&conn->local.addr4.sin_addr)
-            		 	    			  : (ip6 ? (void*)&conn->remote.addr6.sin6_addr : (void*)&conn->remote.addr4.sin_addr)
-            		 	    	),
-            		 	    	ip6 ? sizeof(struct in6_addr) : sizeof(struct in_addr)
-            			   )
-        	)
+                                 (is_local ? (ip6 ? (void*)&conn->local.addr6.sin6_addr : (void*)&conn->local.addr4.sin_addr)
+                                           : (ip6 ? (void*)&conn->remote.addr6.sin6_addr : (void*)&conn->remote.addr4.sin_addr)
+                                 ),
+                                 ip6 ? sizeof(struct in6_addr) : sizeof(struct in_addr)
+                           )
+            )
             return conn;
     }
 
@@ -165,13 +166,13 @@ struct ap_net_connection_t *ap_net_conn_pool_get_conn_by_address(struct ap_net_c
  */
 void ap_net_connection_destroy(struct ap_net_connection_t *conn, int free_this)
 {
-	if (conn->parent != NULL && conn->parent->callback_func != NULL )
-		conn->parent->callback_func(conn, AP_NET_SIGNAL_CONN_DESTROYING );
+    if (conn->parent != NULL && conn->parent->callback_func != NULL )
+        conn->parent->callback_func(conn, AP_NET_SIGNAL_CONN_DESTROYING );
 
-	free(conn->buf);
+    free(conn->buf);
 
-	if ( free_this )
-    	free(conn);
+    if ( free_this )
+        free(conn);
 }
 
 /* ********************************************************************** */
@@ -183,10 +184,10 @@ void ap_net_connection_destroy(struct ap_net_connection_t *conn, int free_this)
  */
 void ap_net_connection_buf_clear(struct ap_net_connection_t *conn, int fill_char)
 {
-	conn->buffill = conn->bufpos = 0;
+    conn->buffill = conn->bufpos = 0;
 
-	if ( fill_char >= 0 && fill_char < 256 )
-		memset(conn->buf, fill_char, conn->bufsize);
+    if ( fill_char >= 0 && fill_char < 256 )
+        memset(conn->buf, fill_char, conn->bufsize);
 }
 
 /* ********************************************************************** */
@@ -202,10 +203,10 @@ void ap_net_conn_pool_destroy(struct ap_net_conn_pool_t *pool, int free_this)
 
 
     if ( pool->listener.sock != -1 )
-    	close(pool->listener.sock);
+        close(pool->listener.sock);
 
     if ( pool->poller != NULL )
-    	ap_net_poller_destroy(pool->poller);
+        ap_net_poller_destroy(pool->poller);
 
     for ( i = 0; i < pool->max_connections; ++i)
     {
@@ -218,7 +219,7 @@ void ap_net_conn_pool_destroy(struct ap_net_conn_pool_t *pool, int free_this)
     free(pool->conns);
 
     if ( free_this )
-    	free(pool);
+        free(pool);
 }
 
 /* ********************************************************************** */
@@ -268,7 +269,7 @@ int ap_net_recv(int sh, void *buf, int size, int non_blocking)
 
     if ( retval != -1 )
     {
-    	flags = (non_blocking ? MSG_DONTWAIT : 0) | MSG_NOSIGNAL;
+        flags = (non_blocking ? MSG_DONTWAIT : 0) | MSG_NOSIGNAL;
         retval = recv(sh, buf, size, flags);
     }
 
@@ -292,7 +293,7 @@ int ap_net_send(int sh, void *buf, int size, int non_blocking)
 
     if ( retval != -1 )
     {
-    	flags = (non_blocking ? MSG_DONTWAIT : 0) | MSG_NOSIGNAL;
+        flags = (non_blocking ? MSG_DONTWAIT : 0) | MSG_NOSIGNAL;
         retval = send(sh, buf, size, flags);
     }
 
