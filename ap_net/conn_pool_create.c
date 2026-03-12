@@ -43,9 +43,10 @@ static const char *_func_name = "ap_net_conn_pool_create()";
  * By no means you must rely on some remembered char* pointer into the buffer. Always use relative indexes based on current value of bufpos.
  *
  * Callback function's coupled with ap_net_conn_pool_poll() main advantage is automatic handling of standard events like graceful and erroneous disconnections,
- * data arrival, registering new incoming connections is server mode and some changes to internal pool's structures such as moving connection from place to place
+ * data arrival, registering new incoming connections in server mode and some changes to internal pool's structures such as moving connection from place to place
  * Current signals sent are:
- *     AP_NET_SIGNAL_CONN_CREATED - Sent on each new connection structure create. This is happen on calling ap_net_conn_pool_set_max_connections() when new connections added
+ *     AP_NET_SIGNAL_CONN_CREATED - Sent on each new connection structure creation.
+ *          This happens on a call to ap_net_conn_pool_set_max_connections() when new connections are added.
  *          Useful to create and initialize connection's pointer to user-defined data connection->user_data
  *     AP_NET_SIGNAL_CONN_DESTROYING - Called on connection's destruction.
  *         1) also on ap_net_conn_pool_set_max_connections() when extra connections is removed
@@ -66,7 +67,8 @@ static const char *_func_name = "ap_net_conn_pool_create()";
  *         but buffer still contain some unprocessed stuff. trigger is bufpos < buffill.
  *
  */
-struct ap_net_conn_pool_t *ap_net_conn_pool_create(int flags, int max_connections, int connection_timeout_ms, int conn_buf_size, ap_net_conn_pool_callback_func in_callback_func)
+struct ap_net_conn_pool_t *ap_net_conn_pool_create(int flags, int max_connections, int connection_timeout_ms,
+        int conn_buf_size, ap_net_conn_pool_callback_func in_callback_func)
 {
     struct ap_net_conn_pool_t *pool;
 
