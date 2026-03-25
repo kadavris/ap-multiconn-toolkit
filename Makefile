@@ -4,9 +4,9 @@ CC=gcc
 
 distroopts=-mtune=generic -Wall -O2
 distroheaders=ap_log.h ap_str.h ap_utils.h ap_net/ap_net.h
-distrotexts=README LICENSE
+distrotexts=README README.overview.md LICENSE
 
-optsdebug=-Wall -ggdb -Og
+optsdebug=-Wall -Wpedantic -ggdb -Og
 optsrelease=-Wall -O2
 
 libbasename=apstoolkit
